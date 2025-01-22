@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 import pathlib
 import unittest
@@ -29,11 +31,6 @@ class Test_basic_cfg_from_dict(unittest.TestCase):
 
 
 @dataclasses.dataclass
-class SubConfig:
-    param_int: int
-
-
-@dataclasses.dataclass
 class InheritedSubConfig(mini_cfg.BaseConfig):
     some_int: int
 
@@ -43,6 +40,11 @@ class ConfigWithNestedParams:
     sub: SubConfig
     isub: InheritedSubConfig
     osub: Optional[SubConfig] = None
+
+
+@dataclasses.dataclass
+class SubConfig:
+    param_int: int
 
 
 class Test_nested_cfg_from_dict(unittest.TestCase):
