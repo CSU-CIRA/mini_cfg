@@ -1,13 +1,15 @@
 import dataclasses
 import datetime as dt
 import inspect
+import json
 import pathlib
 import tomllib
 import types
 import typing
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Callable, Dict, List, Optional, Type, TypeVar
 
 T = TypeVar("T")
+FileParserFunc = Callable[[pathlib.Path, T, Optional[List[T]]], T]
 
 NONE_TYPE = type(None)
 
@@ -17,24 +19,52 @@ class BaseConfig:
     pass
 
 
-def cfg_from_toml(path: pathlib.Path, config_class: T) -> Type[T]:
+def cfg_from_toml(
+    path: pathlib.Path, config_class: T, sub_classes: Optional[List[T]] = None
+) -> Type[T]:
     with open(path, "rb") as in_file:
         toml_dict = tomllib.load(in_file)
 
-    return cfg_from_dict(toml_dict, config_class)
+    return cfg_from_dict(toml_dict, config_class, sub_classes, cfg_from_toml)
+
+
+def cfg_from_json(
+    path: pathlib.Path, config_class: T, sub_classes: Optional[List[T]] = None
+) -> Type[T]:
+    with open(path, "r") as in_file:
+        json_dict = json.load(in_file)
+
+    return cfg_from_dict(json_dict, config_class, sub_classes, cfg_from_json)
+
+
+def cfg_from_yaml(
+    path: pathlib.Path, config_class: T, sub_classes: Optional[List[T]] = None
+) -> Type[T]:
+    import yaml
+
+    with open(path, "r") as in_file:
+        yaml_dict = yaml.safe_load(in_file)
+
+    return cfg_from_dict(yaml_dict, config_class, sub_classes, cfg_from_yaml)
 
 
 def cfg_from_dict(
-    d: Dict[str, Any], config_class: T, sub_classes: Optional[List[T]] = None
+    d: Dict[str, Any],
+    config_class: T,
+    sub_classes: Optional[List[T]] = None,
+    parser_func: Optional[FileParserFunc] = None,
 ) -> Type[T]:
     instance = config_class(**d)
-    _convert_sub_classes(instance, config_class, sub_classes)
+    _convert_sub_classes(instance, config_class, sub_classes, parser_func)
 
     return instance
 
 
 def _convert_sub_classes(
-    instance: T, config_class: T, sub_classes: Optional[List[T]] = None
+    instance: T,
+    config_class: T,
+    sub_classes: Optional[List[T]] = None,
+    parser_func: Optional[FileParserFunc] = None,
 ) -> None:
     if sub_classes is None:
         sub_classes = []
@@ -50,6 +80,12 @@ def _convert_sub_classes(
 
             if isinstance(given_value, dict):
                 instance.__dict__[attr] = cfg_from_dict(given_value, hint_type)
+
+            if isinstance(given_value, str):
+                sub_file_path = pathlib.Path(given_value)
+                instance.__dict__[attr] = parser_func(
+                    sub_file_path, config_class, sub_classes
+                )
 
 
 def _is_attr_sub_class(attr_type: Type, sub_classes: List[T]) -> bool:
