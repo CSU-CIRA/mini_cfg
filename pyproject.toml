@@ -12,6 +12,9 @@ requires-python = ">=3.11"
 dynamic = ["version"]
 #license = {file = "LICENSE.txt"}
 
+[project.optional-dependencies]
+read_yaml=["pyyaml"]
+
 [project.urls]
 Homepage = "https://bear.cira.colostate.edu/rdemaria/mini_cfg"
 Documentation = "https://bear.cira.colostate.edu/rdemaria/mini_cfg"

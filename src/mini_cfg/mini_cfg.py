@@ -1,5 +1,6 @@
 import dataclasses
 import datetime as dt
+import functools
 import inspect
 import json
 import pathlib
@@ -19,33 +20,92 @@ class BaseConfig:
     pass
 
 
-def cfg_from_toml(
-    path: pathlib.Path, config_class: T, sub_classes: Optional[List[T]] = None
+def cfg_from_file(
+    paths: pathlib.Path | List[pathlib.Path],
+    config_class: T,
+    reader: Callable[[pathlib.Path], Dict[str, Any]],
+    sub_classes: Optional[List[T]] = None,
 ) -> Type[T]:
+    paths = _convert_single_path_to_list(paths)
+
+    final_dict = {}
+    for path in paths:
+        read_dict = reader(path)
+
+        _recursive_update_dict(read_dict, final_dict)
+
+    p = functools.partial(cfg_from_file, reader=reader)
+    return cfg_from_dict(final_dict, config_class, sub_classes, p)
+
+
+def _read_toml(path: pathlib.Path) -> Dict[str, Any]:
     with open(path, "rb") as in_file:
-        toml_dict = tomllib.load(in_file)
-
-    return cfg_from_dict(toml_dict, config_class, sub_classes, cfg_from_toml)
+        return tomllib.load(in_file)
 
 
-def cfg_from_json(
-    path: pathlib.Path, config_class: T, sub_classes: Optional[List[T]] = None
-) -> Type[T]:
-    with open(path, "r") as in_file:
-        json_dict = json.load(in_file)
-
-    return cfg_from_dict(json_dict, config_class, sub_classes, cfg_from_json)
-
-
-def cfg_from_yaml(
-    path: pathlib.Path, config_class: T, sub_classes: Optional[List[T]] = None
-) -> Type[T]:
+def _read_yaml(path: pathlib.Path) -> Dict[str, Any]:
     import yaml
 
     with open(path, "r") as in_file:
-        yaml_dict = yaml.safe_load(in_file)
+        return yaml.safe_load(in_file)
 
-    return cfg_from_dict(yaml_dict, config_class, sub_classes, cfg_from_yaml)
+
+def _read_json(path: pathlib.Path) -> Dict[str, Any]:
+    with open(path, "r") as in_file:
+        return json.load(in_file)
+
+
+def cfg_from_toml(
+    paths: pathlib.Path | List[pathlib.Path],
+    config_class: T,
+    sub_classes: Optional[List[T]] = None,
+) -> Type[T]:
+    return cfg_from_file(paths, config_class, _read_toml, sub_classes)
+
+
+def cfg_from_json(
+    paths: pathlib.Path | List[pathlib.Path],
+    config_class: T,
+    sub_classes: Optional[List[T]] = None,
+) -> Type[T]:
+    return cfg_from_file(paths, config_class, _read_json, sub_classes)
+
+
+def cfg_from_yaml(
+    paths: pathlib.Path | List[pathlib.Path],
+    config_class: T,
+    sub_classes: Optional[List[T]] = None,
+) -> Type[T]:
+    return cfg_from_file(paths, config_class, _read_yaml, sub_classes)
+
+
+def _convert_single_path_to_list(
+    paths: pathlib.Path | List[pathlib.Path],
+) -> List[pathlib.Path]:
+    if isinstance(paths, pathlib.Path):
+        return [paths]
+
+    return paths
+
+
+def _recursive_update_dict(src_dict: Dict[str, Any], dst_dict: Dict[str, Any]):
+    for k, v in src_dict.items():
+        if _val_is_dict(v):
+            if k not in dst_dict:
+                dst_dict[k] = {}
+
+            _recursive_update_dict(v, dst_dict[k])
+        else:
+            dst_dict[k] = v
+
+
+def _val_is_dict(val: Any) -> bool:
+    try:
+        val.items()
+    except AttributeError:
+        return False
+
+    return True
 
 
 def cfg_from_dict(

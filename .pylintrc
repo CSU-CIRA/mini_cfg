@@ -22,4 +22,5 @@ disable=
     missing-module-docstring,
     missing-class-docstring,
     too-few-public-methods,
-    too-many-instance-attributes
+    too-many-instance-attributes,
+    import-outside-toplevel
