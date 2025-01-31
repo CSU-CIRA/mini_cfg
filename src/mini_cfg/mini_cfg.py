@@ -2,7 +2,6 @@ import dataclasses
 import datetime as dt
 import functools
 import inspect
-import json
 import pathlib
 import tomllib
 import types
@@ -25,6 +24,9 @@ def cfg_from_file(
     config_class: T,
     reader: Callable[[pathlib.Path], Dict[str, Any]],
     sub_classes: Optional[List[T]] = None,
+    converters: Optional[Dict[T, Callable]] = None,
+    auto_convert_paths: bool = True,
+    auto_convert_date_to_datetime: bool = True,
 ) -> Type[T]:
     paths = _convert_single_path_to_list(paths)
 
@@ -35,7 +37,15 @@ def cfg_from_file(
         recursive_update_dict(read_dict, final_dict)
 
     p = functools.partial(cfg_from_file, reader=reader)
-    return cfg_from_dict(final_dict, config_class, sub_classes, p)
+    return cfg_from_dict(
+        final_dict,
+        config_class,
+        sub_classes,
+        p,
+        converters,
+        auto_convert_paths,
+        auto_convert_date_to_datetime,
+    )
 
 
 def _read_toml(path: pathlib.Path) -> Dict[str, Any]:
@@ -50,33 +60,42 @@ def _read_yaml(path: pathlib.Path) -> Dict[str, Any]:
         return yaml.safe_load(in_file)
 
 
-def _read_json(path: pathlib.Path) -> Dict[str, Any]:
-    with open(path, "r") as in_file:
-        return json.load(in_file)
-
-
 def cfg_from_toml(
     paths: pathlib.Path | List[pathlib.Path],
     config_class: T,
     sub_classes: Optional[List[T]] = None,
+    converters: Optional[Dict[T, Callable]] = None,
+    auto_convert_paths: bool = True,
+    auto_convert_date_to_datetime: bool = True,
 ) -> Type[T]:
-    return cfg_from_file(paths, config_class, _read_toml, sub_classes)
-
-
-def cfg_from_json(
-    paths: pathlib.Path | List[pathlib.Path],
-    config_class: T,
-    sub_classes: Optional[List[T]] = None,
-) -> Type[T]:
-    return cfg_from_file(paths, config_class, _read_json, sub_classes)
+    return cfg_from_file(
+        paths,
+        config_class,
+        _read_toml,
+        sub_classes,
+        converters,
+        auto_convert_paths,
+        auto_convert_date_to_datetime,
+    )
 
 
 def cfg_from_yaml(
     paths: pathlib.Path | List[pathlib.Path],
     config_class: T,
     sub_classes: Optional[List[T]] = None,
+    converters: Optional[Dict[T, Callable]] = None,
+    auto_convert_paths: bool = True,
+    auto_convert_date_to_datetime: bool = True,
 ) -> Type[T]:
-    return cfg_from_file(paths, config_class, _read_yaml, sub_classes)
+    return cfg_from_file(
+        paths,
+        config_class,
+        _read_yaml,
+        sub_classes,
+        converters,
+        auto_convert_paths,
+        auto_convert_date_to_datetime,
+    )
 
 
 def _convert_single_path_to_list(
@@ -113,10 +132,25 @@ def cfg_from_dict(
     config_class: T,
     sub_classes: Optional[List[T]] = None,
     parser_func: Optional[FileParserFunc] = None,
+    converters: Optional[Dict[T, Callable]] = None,
+    auto_convert_paths: bool = True,
+    auto_convert_date_to_datetime: bool = True,
 ) -> Type[T]:
     instance = config_class(**d)
-    _convert_sub_classes(instance, config_class, sub_classes, parser_func)
 
+    if converters is None:
+        converters = {}
+    else:
+        converters = dict(converters)
+
+    if pathlib.Path not in converters and auto_convert_paths:
+        converters[pathlib.Path] = pathlib.Path
+
+    if dt.datetime not in converters and auto_convert_date_to_datetime:
+        converters[dt.datetime] = _convert_date
+
+    _convert_sub_classes(instance, config_class, sub_classes, parser_func, converters)
+    _custom_conversions(instance, config_class, converters)
     return instance
 
 
@@ -125,6 +159,7 @@ def _convert_sub_classes(
     config_class: T,
     sub_classes: Optional[List[T]] = None,
     parser_func: Optional[FileParserFunc] = None,
+    converters: Optional[Dict[T, Callable]] = None,
 ) -> None:
     if sub_classes is None:
         sub_classes = []
@@ -139,7 +174,9 @@ def _convert_sub_classes(
                 continue
 
             if isinstance(given_value, dict):
-                instance.__dict__[attr] = cfg_from_dict(given_value, hint_type)
+                instance.__dict__[attr] = cfg_from_dict(
+                    given_value, hint_type, sub_classes, parser_func, converters
+                )
 
             if isinstance(given_value, str):
                 sub_file_path = pathlib.Path(given_value)
@@ -189,3 +226,29 @@ def _normalize_hint(hint: Type) -> Type:
         return _unpack_optional(hint)
 
     return hint
+
+
+def _custom_conversions(
+    instance: T, config_class: T, converters: Dict[T, Callable]
+) -> None:
+    hints = typing.get_type_hints(config_class)
+    for attr, raw_hint in hints.items():
+        hint_type = _normalize_hint(raw_hint)
+
+        if hint_type not in converters:
+            continue
+
+        given_value = instance.__dict__[attr]
+
+        if _is_hint_optional(raw_hint) and given_value is None:
+            continue
+
+        converter = converters[hint_type]
+        instance.__dict__[attr] = converter(given_value)
+
+
+def _convert_date(d: dt.date | dt.datetime) -> dt.datetime:
+    if isinstance(d, dt.datetime):
+        return d
+
+    return dt.datetime(d.year, d.month, d.day)
