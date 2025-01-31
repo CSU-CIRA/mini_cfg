@@ -74,3 +74,61 @@ class Test_nested_cfg_from_dict(unittest.TestCase):
         )
 
         self.assertEqual(cfg.osub.param_int, 111)
+
+
+class Test_recursive_update_dict(unittest.TestCase):
+    def test_AddsNewKey(self):
+        src = {"a": 10}
+        dst = {"b": 100}
+
+        mini_cfg.recursive_update_dict(src, dst)
+        self.assertEqual(dst["a"], 10)
+
+    def test_MaintainsOriginalKey(self):
+        src = {"a": 10}
+        dst = {"b": 100}
+
+        mini_cfg.recursive_update_dict(src, dst)
+        self.assertEqual(dst["b"], 100)
+
+    def test_HasExactlyTwoKeys(self):
+        src = {"a": 10}
+        dst = {"b": 100}
+
+        mini_cfg.recursive_update_dict(src, dst)
+        self.assertSequenceEqual(sorted(dst.keys()), ("a", "b"))
+
+    def test_OverridesOverlappingValue(self):
+        src = {"a": 10}
+        dst = {"a": 100}
+
+        mini_cfg.recursive_update_dict(src, dst)
+        self.assertEqual(dst["a"], 10)
+
+    def test_AddsSubValue(self):
+        src = {"a": {"foo": 10}}
+        dst = {"a": {"bar": 100}}
+
+        mini_cfg.recursive_update_dict(src, dst)
+        self.assertEqual(dst["a"]["foo"], 10)
+
+    def test_KeepsSiblingSubValue(self):
+        src = {"a": {"foo": 10}}
+        dst = {"a": {"bar": 100}}
+
+        mini_cfg.recursive_update_dict(src, dst)
+        self.assertEqual(dst["a"]["bar"], 100)
+
+    def test_SubDictHasCorrectKeys(self):
+        src = {"a": {"foo": 10}}
+        dst = {"a": {"bar": 100}}
+
+        mini_cfg.recursive_update_dict(src, dst)
+        self.assertSequenceEqual(sorted(dst["a"].keys()), ("bar", "foo"))
+
+    def test_SubDictOverridesOverlappingValue(self):
+        src = {"a": {"foo": 10}}
+        dst = {"a": {"foo": 100}}
+
+        mini_cfg.recursive_update_dict(src, dst)
+        self.assertEqual(dst["a"]["foo"], 10)

@@ -32,7 +32,7 @@ def cfg_from_file(
     for path in paths:
         read_dict = reader(path)
 
-        _recursive_update_dict(read_dict, final_dict)
+        recursive_update_dict(read_dict, final_dict)
 
     p = functools.partial(cfg_from_file, reader=reader)
     return cfg_from_dict(final_dict, config_class, sub_classes, p)
@@ -88,13 +88,13 @@ def _convert_single_path_to_list(
     return paths
 
 
-def _recursive_update_dict(src_dict: Dict[str, Any], dst_dict: Dict[str, Any]):
+def recursive_update_dict(src_dict: Dict[str, Any], dst_dict: Dict[str, Any]):
     for k, v in src_dict.items():
         if _val_is_dict(v):
             if k not in dst_dict:
                 dst_dict[k] = {}
 
-            _recursive_update_dict(v, dst_dict[k])
+            recursive_update_dict(v, dst_dict[k])
         else:
             dst_dict[k] = v
 
