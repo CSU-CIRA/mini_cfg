@@ -23,4 +23,5 @@ disable=
     missing-class-docstring,
     too-few-public-methods,
     too-many-instance-attributes,
-    import-outside-toplevel
+    import-outside-toplevel,
+    disallowed-name,

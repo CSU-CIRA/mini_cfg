@@ -1,0 +1,4 @@
+foo = 10
+full_dt = 2025-02-06 12:05:01
+converted_dt = 2025-02-06
+filename = "some_file.txt"

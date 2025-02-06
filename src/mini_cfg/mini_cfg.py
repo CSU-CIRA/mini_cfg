@@ -27,6 +27,7 @@ def cfg_from_file(
     converters: Optional[Dict[T, Callable]] = None,
     auto_convert_paths: bool = True,
     auto_convert_date_to_datetime: bool = True,
+    perform_partial_reader_func: bool = True,
 ) -> Type[T]:
     paths = _convert_single_path_to_list(paths)
 
@@ -36,7 +37,9 @@ def cfg_from_file(
 
         recursive_update_dict(read_dict, final_dict)
 
-    p = functools.partial(cfg_from_file, reader=reader)
+    p = reader
+    if perform_partial_reader_func:
+        p = functools.partial(cfg_from_file, reader=reader)
     return cfg_from_dict(
         final_dict,
         config_class,
@@ -149,7 +152,15 @@ def cfg_from_dict(
     if dt.datetime not in converters and auto_convert_date_to_datetime:
         converters[dt.datetime] = _convert_date
 
-    _convert_sub_classes(instance, config_class, sub_classes, parser_func, converters)
+    _convert_sub_classes(
+        instance,
+        config_class,
+        sub_classes,
+        parser_func,
+        converters,
+        auto_convert_paths,
+        auto_convert_date_to_datetime,
+    )
     _custom_conversions(instance, config_class, converters)
     return instance
 
@@ -160,6 +171,8 @@ def _convert_sub_classes(
     sub_classes: Optional[List[T]] = None,
     parser_func: Optional[FileParserFunc] = None,
     converters: Optional[Dict[T, Callable]] = None,
+    auto_convert_paths: bool = True,
+    auto_convert_date_to_datetime: bool = True,
 ) -> None:
     if sub_classes is None:
         sub_classes = []
@@ -175,13 +188,26 @@ def _convert_sub_classes(
 
             if isinstance(given_value, dict):
                 instance.__dict__[attr] = cfg_from_dict(
-                    given_value, hint_type, sub_classes, parser_func, converters
+                    given_value,
+                    hint_type,
+                    sub_classes,
+                    parser_func,
+                    converters,
+                    auto_convert_paths,
+                    auto_convert_date_to_datetime,
                 )
 
             if isinstance(given_value, str):
                 sub_file_path = pathlib.Path(given_value)
-                instance.__dict__[attr] = parser_func(
-                    sub_file_path, config_class, sub_classes
+                instance.__dict__[attr] = cfg_from_file(
+                    sub_file_path,
+                    config_class,
+                    parser_func,
+                    sub_classes,
+                    converters,
+                    auto_convert_paths,
+                    auto_convert_date_to_datetime,
+                    perform_partial_reader_func=False,
                 )
 
 
