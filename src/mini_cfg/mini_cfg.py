@@ -1,6 +1,5 @@
 import dataclasses
 import datetime as dt
-import functools
 import inspect
 import pathlib
 import tomllib
@@ -27,7 +26,6 @@ def cfg_from_file(
     converters: Optional[Dict[T, Callable]] = None,
     auto_convert_paths: bool = True,
     auto_convert_date_to_datetime: bool = True,
-    perform_partial_reader_func: bool = True,
 ) -> Type[T]:
     paths = _convert_single_path_to_list(paths)
 
@@ -37,14 +35,11 @@ def cfg_from_file(
 
         recursive_update_dict(read_dict, final_dict)
 
-    p = reader
-    if perform_partial_reader_func:
-        p = functools.partial(cfg_from_file, reader=reader)
     return cfg_from_dict(
         final_dict,
         config_class,
         sub_classes,
-        p,
+        reader,
         converters,
         auto_convert_paths,
         auto_convert_date_to_datetime,
@@ -201,13 +196,12 @@ def _convert_sub_classes(
                 sub_file_path = pathlib.Path(given_value)
                 instance.__dict__[attr] = cfg_from_file(
                     sub_file_path,
-                    config_class,
+                    hint_type,
                     parser_func,
                     sub_classes,
                     converters,
                     auto_convert_paths,
                     auto_convert_date_to_datetime,
-                    perform_partial_reader_func=False,
                 )
 
 
