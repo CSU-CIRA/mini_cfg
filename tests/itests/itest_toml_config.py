@@ -5,7 +5,7 @@ import unittest
 
 from mini_cfg import mini_cfg
 
-BASIC_CONFIG_FILE = pathlib.Path("tests/itests/test_configs/basic_config.toml")
+BASIC_CONFIG_FILE = pathlib.Path("tests/itests/test_configs/toml/basic_config.toml")
 
 TEST_DATE = dt.datetime(2025, 2, 6, 12, 5, 1)
 PARTIAL_DATE = dt.datetime(2025, 2, 6)
@@ -69,10 +69,12 @@ class Test_BasicTomlConfig(unittest.TestCase):
         self.assertEqual(cfg.filename, TEST_PATH.name)
 
 
-NESTED_CONFIG_FILE = pathlib.Path("tests/itests/test_configs/nested_config.toml")
-CASCADE_CONFIG_FILE = pathlib.Path("tests/itests/test_configs/cascaded_config.toml")
+NESTED_CONFIG_FILE = pathlib.Path("tests/itests/test_configs/toml/nested_config.toml")
+CASCADE_CONFIG_FILE = pathlib.Path(
+    "tests/itests/test_configs/toml/cascaded_config.toml"
+)
 NESTED_WITH_POINTER_FILE = pathlib.Path(
-    "tests/itests/test_configs/nested_with_pointer_config.toml"
+    "tests/itests/test_configs/toml/nested_with_pointer_config.toml"
 )
 
 
