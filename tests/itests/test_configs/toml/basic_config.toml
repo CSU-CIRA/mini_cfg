@@ -1,4 +1,12 @@
-foo = 10
-full_dt = 2025-02-06 12:05:01
-converted_dt = 2025-02-06
-filename = "some_file.txt"
+# This is a basic config file that does not make use of nesting.
+
+# A basic int field
+foo = 10 
+# A field that should turn into a datetime object
+full_dt = 2025-02-06 12:05:01 
+# A field that, by default, will be converted to a datetime object and will 
+# otherwise be a date
+converted_dt = 2025-02-06 
+# A field that, by default, will be converted to a pathlib.Path object and will
+# otherwise be a string
+filename = "some_file.txt"  

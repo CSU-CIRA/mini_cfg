@@ -1,2 +1,4 @@
+# This file is used by nested_with_pointer_config.toml to store its nested 
+# sub-config data.
 foo = 10
 filename = "some_file.txt"

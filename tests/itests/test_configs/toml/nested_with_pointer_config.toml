@@ -1,1 +1,4 @@
+# This file is used to verify that a config file with a nested sub-config can
+# point to a separate config file. This separate file will be parsed as if its
+# contents were included in this top-level config file.
 nested = "tests/itests/test_configs/toml/separated_nested_config.toml"

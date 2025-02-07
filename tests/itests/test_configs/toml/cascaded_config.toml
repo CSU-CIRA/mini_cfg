@@ -1,2 +1,5 @@
+# This is a cascaded config file that should be used to override a single nested
+# int value.
+
 [nested]
 foo = 999

@@ -8,7 +8,7 @@ import typing
 from typing import Any, Callable, Dict, List, Optional, Type, TypeVar
 
 T = TypeVar("T")
-FileParserFunc = Callable[[pathlib.Path, T, Optional[List[T]]], T]
+FileParserFunc = Callable[[pathlib.Path], Dict[str, Any]]
 
 NONE_TYPE = type(None)
 
@@ -21,7 +21,7 @@ class BaseConfig:
 def cfg_from_file(
     paths: pathlib.Path | List[pathlib.Path],
     config_class: T,
-    reader: Callable[[pathlib.Path], Dict[str, Any]],
+    reader: FileParserFunc,
     sub_classes: Optional[List[T]] = None,
     converters: Optional[Dict[T, Callable]] = None,
     auto_convert_paths: bool = True,

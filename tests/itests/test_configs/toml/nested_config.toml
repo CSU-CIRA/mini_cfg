@@ -1,3 +1,9 @@
+# This config file that makes use of a nested sub-config.
+
+# This sub-config corresponds to the NestedConfig class in file_test_suite.py.
 [nested]
-foo = 10
-filename = "some_file.txt"
+# Simple int field
+foo = 10 
+# A field that, by default, will be converted to a pathlib.Path object and will
+# otherwise be a string
+filename = "some_file.txt" 
