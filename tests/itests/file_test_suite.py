@@ -92,35 +92,35 @@ def perform_tests(fixture: TestFixture) -> None:
 
 def _test_basic_ParsesInt(fix: TestFixture) -> None:
     with fix.tester.subTest("Basic parse. Parses Int Field"):
-        cfg = mini_cfg.cfg_from_toml(fix.basic_config_file, BasicConfig)
+        cfg = mini_cfg.cfg_from_file(fix.basic_config_file, BasicConfig, fix.reader)
 
         fix.tester.assertEqual(cfg.foo, 10)
 
 
 def _test_basic_ParsesFullDatetimeField(fix: TestFixture) -> None:
     with fix.tester.subTest("Basic parse. Parses full datetime."):
-        cfg = mini_cfg.cfg_from_toml(fix.basic_config_file, BasicConfig)
+        cfg = mini_cfg.cfg_from_file(fix.basic_config_file, BasicConfig, fix.reader)
 
         fix.tester.assertEqual(cfg.full_dt, TEST_DATE)
 
 
 def _test_basic_DateConvertedToDatetime(fix: TestFixture) -> None:
     with fix.tester.subTest("Basic parse. Converts date to datetime."):
-        cfg = mini_cfg.cfg_from_toml(fix.basic_config_file, BasicConfig)
+        cfg = mini_cfg.cfg_from_file(fix.basic_config_file, BasicConfig, fix.reader)
 
         fix.tester.assertIsInstance(cfg.converted_dt, dt.datetime)
 
 
 def _test_basic_ConvertedDateIsParsedCorrectly(fix: TestFixture) -> None:
     with fix.tester.subTest("Basic parse. Converted date is parsed correctly."):
-        cfg = mini_cfg.cfg_from_toml(fix.basic_config_file, BasicConfig)
+        cfg = mini_cfg.cfg_from_file(fix.basic_config_file, BasicConfig, fix.reader)
 
         fix.tester.assertEqual(cfg.converted_dt, PARTIAL_DATE)
 
 
 def _test_basic_PathIsConverted(fix: TestFixture) -> None:
     with fix.tester.subTest("Basic parse. Path field is converted."):
-        cfg = mini_cfg.cfg_from_toml(fix.basic_config_file, BasicConfig)
+        cfg = mini_cfg.cfg_from_file(fix.basic_config_file, BasicConfig, fix.reader)
 
         fix.tester.assertEqual(cfg.filename, TEST_PATH)
 
@@ -128,8 +128,11 @@ def _test_basic_PathIsConverted(fix: TestFixture) -> None:
 def _test_basic_DateNotConvertedWhenDisabled(fix: TestFixture) -> None:
     test_name = "Basic parse. Does not convert date if conversion disabled."
     with fix.tester.subTest(test_name):
-        cfg = mini_cfg.cfg_from_toml(
-            fix.basic_config_file, BasicConfig, auto_convert_date_to_datetime=False
+        cfg = mini_cfg.cfg_from_file(
+            fix.basic_config_file,
+            BasicConfig,
+            fix.reader,
+            auto_convert_date_to_datetime=False,
         )
 
         fix.tester.assertIsInstance(cfg.converted_dt, dt.date)
@@ -138,8 +141,11 @@ def _test_basic_DateNotConvertedWhenDisabled(fix: TestFixture) -> None:
 def _test_basic_DateParsedCorrectlyWhenNotConverted(fix: TestFixture) -> None:
     test_name = "Basic parse. Date parsed correctly when not converted to datetime."
     with fix.tester.subTest(test_name):
-        cfg = mini_cfg.cfg_from_toml(
-            fix.basic_config_file, BasicConfig, auto_convert_date_to_datetime=False
+        cfg = mini_cfg.cfg_from_file(
+            fix.basic_config_file,
+            BasicConfig,
+            fix.reader,
+            auto_convert_date_to_datetime=False,
         )
 
         fix.tester.assertEqual(cfg.converted_dt, PARTIAL_DATE_AS_DATE)
@@ -148,8 +154,8 @@ def _test_basic_DateParsedCorrectlyWhenNotConverted(fix: TestFixture) -> None:
 def _test_basic_PathNotConvertedWhenDisabled(fix: TestFixture) -> None:
     test_name = "Basic parse. Path not converted when conversion disabled."
     with fix.tester.subTest(test_name):
-        cfg = mini_cfg.cfg_from_toml(
-            fix.basic_config_file, BasicConfig, auto_convert_paths=False
+        cfg = mini_cfg.cfg_from_file(
+            fix.basic_config_file, BasicConfig, fix.reader, auto_convert_paths=False
         )
 
         fix.tester.assertEqual(cfg.filename, TEST_PATH.name)
@@ -157,21 +163,21 @@ def _test_basic_PathNotConvertedWhenDisabled(fix: TestFixture) -> None:
 
 def _test_nested_IntParsed(fix: TestFixture) -> None:
     with fix.tester.subTest("Nested parse. Nested int field parsed."):
-        cfg = mini_cfg.cfg_from_toml(fix.nested_config_file, ConfigWithNest)
+        cfg = mini_cfg.cfg_from_file(fix.nested_config_file, ConfigWithNest, fix.reader)
 
         fix.tester.assertEqual(cfg.nested.foo, 10)
 
 
 def _test_nested_PathConverted(fix: TestFixture) -> None:
     with fix.tester.subTest("Nested parse. Nested path field is converted."):
-        cfg = mini_cfg.cfg_from_toml(fix.nested_config_file, ConfigWithNest)
+        cfg = mini_cfg.cfg_from_file(fix.nested_config_file, ConfigWithNest, fix.reader)
 
         fix.tester.assertIsInstance(cfg.nested.filename, pathlib.Path)
 
 
 def _test_nested_PathParsedCorrectly(fix: TestFixture) -> None:
     with fix.tester.subTest("Nested parse. Nested converted path is parsed correctly."):
-        cfg = mini_cfg.cfg_from_toml(fix.nested_config_file, ConfigWithNest)
+        cfg = mini_cfg.cfg_from_file(fix.nested_config_file, ConfigWithNest, fix.reader)
 
         fix.tester.assertEqual(cfg.nested.filename, TEST_PATH)
 
@@ -180,7 +186,7 @@ def _test_nested_CascadeOverridesVar(fix: TestFixture) -> None:
     test_name = "Nested parse. Config cascade with nesting uses overriden nested value."
     with fix.tester.subTest(test_name):
         config_files = [fix.nested_config_file, fix.cascade_config_file]
-        cfg = mini_cfg.cfg_from_toml(config_files, ConfigWithNest)
+        cfg = mini_cfg.cfg_from_file(config_files, ConfigWithNest, fix.reader)
 
         fix.tester.assertEqual(cfg.nested.foo, 999)
 
@@ -191,8 +197,8 @@ def _test_nested_WithPointerParsedCorrectly(fix: TestFixture) -> None:
         "separate file is parsed correctly."
     )
     with fix.tester.subTest(test_name):
-        cfg = mini_cfg.cfg_from_toml(
-            fix.nested_config_file_with_pointer, ConfigWithNest
+        cfg = mini_cfg.cfg_from_file(
+            fix.nested_config_file_with_pointer, ConfigWithNest, fix.reader
         )
 
         fix.tester.assertEqual(cfg.nested.foo, 10)
