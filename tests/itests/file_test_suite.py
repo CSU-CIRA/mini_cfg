@@ -34,6 +34,8 @@ Separated Nested Config:
     sub-config data.
 """
 
+from __future__ import annotations
+
 import dataclasses
 import datetime as dt
 import inspect
@@ -57,6 +59,7 @@ class TestFixture:
     nested_config_file: pathlib.Path
     cascade_config_file: pathlib.Path
     nested_config_file_with_pointer: pathlib.Path
+    nested_config_file_with_cycle_a: pathlib.Path
 
 
 @dataclasses.dataclass
@@ -76,6 +79,11 @@ class NestedConfig(mini_cfg.BaseConfig):
 @dataclasses.dataclass
 class ConfigWithNest(mini_cfg.BaseConfig):
     nested: NestedConfig
+
+
+@dataclasses.dataclass
+class ConfigWithCycle(mini_cfg.BaseConfig):
+    nested: ConfigWithCycle
 
 
 def perform_tests(fixture: TestFixture) -> None:
@@ -202,3 +210,17 @@ def _test_nested_WithPointerParsedCorrectly(fix: TestFixture) -> None:
         )
 
         fix.tester.assertEqual(cfg.nested.foo, 10)
+
+
+def _test_nested_ValueErrorRaisedWhenCyclicPointerDetected(fix: TestFixture) -> None:
+    test_name = (
+        "Nested parse. Config file with sub-config (file A) points to "
+        "(file B). Nested value in file B points back to file A. "
+        "Raises ValueError when this is detected."
+    )
+
+    with fix.tester.subTest(test_name):
+        with fix.tester.assertRaises(ValueError):
+            mini_cfg.cfg_from_file(
+                fix.nested_config_file_with_cycle_a, ConfigWithCycle, fix.reader
+            )

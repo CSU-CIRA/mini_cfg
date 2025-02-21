@@ -12,6 +12,9 @@ CASCADE_CONFIG_FILE = pathlib.Path(
 NESTED_WITH_POINTER_FILE = pathlib.Path(
     "tests/itests/test_configs/toml/nested_with_pointer_config.toml"
 )
+NESTED_WITH_POINTER_CYCLE = pathlib.Path(
+    "tests/itests/test_configs/toml/nested_cycle_a.toml"
+)
 
 
 class Test_TOMLSuite(unittest.TestCase):
@@ -23,5 +26,6 @@ class Test_TOMLSuite(unittest.TestCase):
             NESTED_CONFIG_FILE,
             CASCADE_CONFIG_FILE,
             NESTED_WITH_POINTER_FILE,
+            NESTED_WITH_POINTER_CYCLE,
         )
         file_test_suite.perform_tests(fix)

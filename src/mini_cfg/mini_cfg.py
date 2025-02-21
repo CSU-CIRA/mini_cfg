@@ -26,14 +26,18 @@ def cfg_from_file(
     converters: Optional[Dict[T, Callable]] = None,
     auto_convert_paths: bool = True,
     auto_convert_date_to_datetime: bool = True,
+    parent_files: Optional[List[pathlib.Path]] = None,
 ) -> Type[T]:
     paths = _convert_single_path_to_list(paths)
+    _check_for_cycle(paths, parent_files)
 
     final_dict = {}
     for path in paths:
         read_dict = reader(path)
 
         recursive_update_dict(read_dict, final_dict)
+
+    file_history = _create_file_history(paths, parent_files)
 
     return cfg_from_dict(
         final_dict,
@@ -43,7 +47,34 @@ def cfg_from_file(
         converters,
         auto_convert_paths,
         auto_convert_date_to_datetime,
+        file_history,
     )
+
+
+def _create_file_history(
+    paths: List[pathlib.Path], parent_files: Optional[List[pathlib.Path]] = None
+) -> List[pathlib.Path]:
+    file_history = []
+    if parent_files is not None:
+        file_history.extend(parent_files)
+    file_history.extend(paths)
+    return file_history
+
+
+def _check_for_cycle(
+    paths: List[pathlib.Path], parent_paths: Optional[List[pathlib.Path]] = None
+) -> None:
+    if parent_paths is None:
+        return
+
+    for p in paths:
+        if p in parent_paths:
+            msg = (
+                f"Cyclic file reference detected while attempting to "
+                f"create sub-config from previously visited file: {p}. "
+                f"File history: {parent_paths}."
+            )
+            raise ValueError(msg)
 
 
 def _read_toml(path: pathlib.Path) -> Dict[str, Any]:
@@ -133,6 +164,7 @@ def cfg_from_dict(
     converters: Optional[Dict[T, Callable]] = None,
     auto_convert_paths: bool = True,
     auto_convert_date_to_datetime: bool = True,
+    parent_files: Optional[List[pathlib.Path]] = None,
 ) -> Type[T]:
     instance = config_class(**d)
 
@@ -155,6 +187,7 @@ def cfg_from_dict(
         converters,
         auto_convert_paths,
         auto_convert_date_to_datetime,
+        parent_files,
     )
     _custom_conversions(instance, config_class, converters)
     return instance
@@ -168,6 +201,7 @@ def _convert_sub_classes(
     converters: Optional[Dict[T, Callable]] = None,
     auto_convert_paths: bool = True,
     auto_convert_date_to_datetime: bool = True,
+    parent_files: Optional[List[pathlib.Path]] = None,
 ) -> None:
     if sub_classes is None:
         sub_classes = []
@@ -190,6 +224,7 @@ def _convert_sub_classes(
                     converters,
                     auto_convert_paths,
                     auto_convert_date_to_datetime,
+                    parent_files,
                 )
 
             if isinstance(given_value, str):
@@ -202,6 +237,7 @@ def _convert_sub_classes(
                     converters,
                     auto_convert_paths,
                     auto_convert_date_to_datetime,
+                    parent_files,
                 )
 
 

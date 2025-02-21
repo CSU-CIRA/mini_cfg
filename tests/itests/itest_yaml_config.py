@@ -12,6 +12,9 @@ CASCADE_CONFIG_FILE = pathlib.Path(
 NESTED_WITH_POINTER_FILE = pathlib.Path(
     "tests/itests/test_configs/yaml/nested_with_pointer_config.yaml"
 )
+NESTED_WITH_POINTER_CYCLE = pathlib.Path(
+    "tests/itests/test_configs/yaml/nested_cycle_a.yaml"
+)
 
 
 class Test_YAMLSuite(unittest.TestCase):
@@ -23,5 +26,6 @@ class Test_YAMLSuite(unittest.TestCase):
             NESTED_CONFIG_FILE,
             CASCADE_CONFIG_FILE,
             NESTED_WITH_POINTER_FILE,
+            NESTED_WITH_POINTER_CYCLE,
         )
         file_test_suite.perform_tests(fix)
