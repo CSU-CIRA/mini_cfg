@@ -140,7 +140,7 @@ def _test_basic_DateNotConvertedWhenDisabled(fix: TestFixture) -> None:
             fix.basic_config_file,
             BasicConfig,
             fix.reader,
-            auto_convert_date_to_datetime=False,
+            convert_dates=False,
         )
 
         fix.tester.assertIsInstance(cfg.converted_dt, dt.date)
@@ -153,7 +153,7 @@ def _test_basic_DateParsedCorrectlyWhenNotConverted(fix: TestFixture) -> None:
             fix.basic_config_file,
             BasicConfig,
             fix.reader,
-            auto_convert_date_to_datetime=False,
+            convert_dates=False,
         )
 
         fix.tester.assertEqual(cfg.converted_dt, PARTIAL_DATE_AS_DATE)
@@ -163,7 +163,7 @@ def _test_basic_PathNotConvertedWhenDisabled(fix: TestFixture) -> None:
     test_name = "Basic parse. Path not converted when conversion disabled."
     with fix.tester.subTest(test_name):
         cfg = mini_cfg.cfg_from_file(
-            fix.basic_config_file, BasicConfig, fix.reader, auto_convert_paths=False
+            fix.basic_config_file, BasicConfig, fix.reader, convert_paths=False
         )
 
         fix.tester.assertEqual(cfg.filename, TEST_PATH.name)

@@ -276,14 +276,14 @@ class Test_disable_pathlib_conversion(unittest.TestCase):
 
     def test_IsNotConvertedToPath(self):
         cfg = mini_cfg.cfg_from_dict(
-            self.test_dict, DisablePathlibConv, auto_convert_paths=False
+            self.test_dict, DisablePathlibConv, convert_paths=False
         )
 
         self.assertNotIsInstance(cfg.p, pathlib.Path)
 
     def test_HasOriginalString(self):
         cfg = mini_cfg.cfg_from_dict(
-            self.test_dict, DisablePathlibConv, auto_convert_paths=False
+            self.test_dict, DisablePathlibConv, convert_paths=False
         )
 
         self.assertEqual(cfg.p, FAKE_PATH)
@@ -299,21 +299,21 @@ class Test_disable_date_conversion(unittest.TestCase):
 
     def test_IsNotConvertedToDatetime(self):
         cfg = mini_cfg.cfg_from_dict(
-            self.test_dict, DisableDateConv, auto_convert_date_to_datetime=False
+            self.test_dict, DisableDateConv, convert_dates=False
         )
 
         self.assertNotIsInstance(cfg.d, dt.datetime)
 
     def test_RemainsDate(self):
         cfg = mini_cfg.cfg_from_dict(
-            self.test_dict, DisableDateConv, auto_convert_date_to_datetime=False
+            self.test_dict, DisableDateConv, convert_dates=False
         )
 
         self.assertIsInstance(cfg.d, dt.date)
 
     def test_HasOriginalDate(self):
         cfg = mini_cfg.cfg_from_dict(
-            self.test_dict, DisableDateConv, auto_convert_date_to_datetime=False
+            self.test_dict, DisableDateConv, convert_dates=False
         )
 
         self.assertEqual(cfg.d, dt.date(2024, 10, 1))
