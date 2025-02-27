@@ -20,7 +20,24 @@ NONE_TYPE = type(None)
 
 @dataclasses.dataclass
 class BaseConfig:
-    pass
+    def validate(self) -> None:
+        self._do_validation()
+
+        hints = typing.get_type_hints(self.__class__)
+        for attr, raw_hint in hints.items():
+            hint_type = _normalize_hint(raw_hint)
+            given_value = self.__dict__[attr]
+
+            if not _is_attr_base_config(hint_type):
+                continue
+
+            if _is_hint_optional(raw_hint) and given_value is None:
+                continue
+
+            given_value.validate()
+
+    def _do_validation(self) -> None:
+        pass
 
 
 def cfg_from_file(
@@ -261,10 +278,14 @@ def _is_attr_sub_class(attr_type: Type, sub_classes: List[T]) -> bool:
     if attr_type in sub_classes:
         return True
 
-    if inspect.isclass(attr_type) and issubclass(attr_type, BaseConfig):
+    if _is_attr_base_config(attr_type):
         return True
 
     return False
+
+
+def _is_attr_base_config(attr_type: Type) -> bool:
+    return inspect.isclass(attr_type) and issubclass(attr_type, BaseConfig)
 
 
 def _is_hint_optional(attr_type: Type) -> bool:

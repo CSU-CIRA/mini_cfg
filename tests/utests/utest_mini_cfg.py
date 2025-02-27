@@ -303,3 +303,49 @@ class Test_disable_date_conversion(unittest.TestCase):
         )
 
         self.assertEqual(cfg.d, dt.date(2024, 10, 1))
+
+
+@dataclasses.dataclass
+class ValidationMock:
+    reached: bool = False
+
+
+@dataclasses.dataclass
+class ValidateSubLevel(mini_cfg.BaseConfig):
+    bar: ValidationMock
+
+    def _do_validation(self):
+        self.bar.reached = True
+
+
+@dataclasses.dataclass
+class ValidateTopLevel(mini_cfg.BaseConfig):
+    foo: ValidationMock
+    sub_config: ValidateSubLevel
+
+    def _do_validation(self):
+        self.foo.reached = True
+
+
+class Test_Validation(unittest.TestCase):
+    def _get_test_config(self):
+        d = {"foo": ValidationMock(), "sub_config": {"bar": ValidationMock()}}
+        return mini_cfg.cfg_from_dict(d, ValidateTopLevel)
+
+    def test_TopLevelValidationReached(self) -> None:
+        cfg = self._get_test_config()
+        cfg.validate()
+        self.assertTrue(cfg.foo.reached)
+
+    def test_SubLevelValidationReached(self) -> None:
+        cfg = self._get_test_config()
+        cfg.validate()
+        self.assertTrue(cfg.sub_config.bar.reached)
+
+    def test_ValidationNotCalled_TopLevelValidationNotReached(self) -> None:
+        cfg = self._get_test_config()
+        self.assertFalse(cfg.foo.reached)
+
+    def test_ValidationNotCalled_SubLevelValidationNotReached(self) -> None:
+        cfg = self._get_test_config()
+        self.assertFalse(cfg.sub_config.bar.reached)
