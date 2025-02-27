@@ -31,7 +31,7 @@ class BaseConfig:
             if not _is_attr_base_config(hint_type):
                 continue
 
-            if _is_hint_optional(raw_hint) and given_value is None:
+            if _is_optional_hint_set_to_none(raw_hint, given_value):
                 continue
 
             given_value.validate()
