@@ -1,6 +1,7 @@
 import dataclasses
 import datetime as dt
 import inspect
+import logging
 import pathlib
 import tomllib
 import types
@@ -9,6 +10,10 @@ from typing import Any, Callable, Dict, List, Optional, Type, TypeVar
 
 T = TypeVar("T")
 FileParserFunc = Callable[[pathlib.Path], Dict[str, Any]]
+
+LOG = logging.getLogger(__name__)
+LOG.addHandler(logging.NullHandler())
+
 
 NONE_TYPE = type(None)
 
@@ -28,27 +33,37 @@ def cfg_from_file(
     auto_convert_date_to_datetime: bool = True,
     parent_files: Optional[List[pathlib.Path]] = None,
 ) -> Type[T]:
-    paths = _convert_single_path_to_list(paths)
-    _check_for_cycle(paths, parent_files)
+    try:
+        paths = _convert_single_path_to_list(paths)
+        _check_for_cycle(paths, parent_files)
 
-    final_dict = {}
-    for path in paths:
-        read_dict = reader(path)
+        final_dict = {}
+        for path in paths:
+            read_dict = reader(path)
 
-        recursive_update_dict(read_dict, final_dict)
+            recursive_update_dict(read_dict, final_dict)
 
-    file_history = _create_file_history(paths, parent_files)
+        file_history = _create_file_history(paths, parent_files)
 
-    return cfg_from_dict(
-        final_dict,
-        config_class,
-        sub_classes,
-        reader,
-        converters,
-        auto_convert_paths,
-        auto_convert_date_to_datetime,
-        file_history,
-    )
+        return cfg_from_dict(
+            final_dict,
+            config_class,
+            sub_classes,
+            reader,
+            converters,
+            auto_convert_paths,
+            auto_convert_date_to_datetime,
+            file_history,
+        )
+    except Exception as ex:
+        _add_note(ex, paths, config_class)
+        raise
+
+
+def _add_note(ex: Exception, paths: List[pathlib.Path], config_class: T) -> None:
+    str_paths = [str(p) for p in paths]
+    msg = f"Error creating config type: {config_class} from cascade: {str_paths}"
+    ex.add_note(msg)
 
 
 def _create_file_history(
