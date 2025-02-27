@@ -339,8 +339,11 @@ def _custom_conversions(
         instance.__dict__[attr] = converter(given_value)
 
 
-def _convert_date(d: dt.date | dt.datetime) -> dt.datetime:
+def _convert_date(d: dt.date | dt.datetime | str) -> dt.datetime:
     if isinstance(d, dt.datetime):
         return d
+
+    if isinstance(d, str):
+        return dt.datetime.fromisoformat(d.strip())
 
     return dt.datetime(d.year, d.month, d.day)

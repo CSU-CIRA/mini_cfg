@@ -17,6 +17,8 @@ class BasicConfig:
     path: pathlib.Path
     t_d: dt.datetime
     t_dt: dt.datetime
+    t_str: dt.datetime
+    t_str_space: dt.datetime
 
 
 class Test_basic_cfg_from_dict(unittest.TestCase):
@@ -25,6 +27,8 @@ class Test_basic_cfg_from_dict(unittest.TestCase):
         "path": FAKE_PATH,
         "t_d": dt.date(2025, 1, 31),
         "t_dt": dt.datetime(1995, 1, 1),
+        "t_str": "2025-02-27 12:15:01",
+        "t_str_space": " 2025-02-27 12:15:01  ",
     }
 
     def test_IntParam(self):
@@ -56,6 +60,16 @@ class Test_basic_cfg_from_dict(unittest.TestCase):
         cfg = mini_cfg.cfg_from_dict(self.test_dict, BasicConfig)
 
         self.assertEqual(cfg.t_dt, dt.datetime(1995, 1, 1))
+
+    def test_DatetimeStr_ConversionIsCorrect(self):
+        cfg = mini_cfg.cfg_from_dict(self.test_dict, BasicConfig)
+
+        self.assertEqual(cfg.t_str, dt.datetime(2025, 2, 27, 12, 15, 1))
+
+    def test_DatetimeStrWithSpace_ConversionIsCorrect(self):
+        cfg = mini_cfg.cfg_from_dict(self.test_dict, BasicConfig)
+
+        self.assertEqual(cfg.t_str_space, dt.datetime(2025, 2, 27, 12, 15, 1))
 
 
 @dataclasses.dataclass
