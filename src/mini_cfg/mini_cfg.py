@@ -41,6 +41,7 @@ def cfg_from_file(
     convert_dates: bool = True,
     parent_files: Optional[List[pathlib.Path]] = None,
 ) -> Type[T]:
+    """Creates a config from a file cascade using a provided reader callable."""
     try:
         paths = _convert_single_path_to_list(paths)
         _check_for_cycle(paths, parent_files)
@@ -152,6 +153,7 @@ def cfg_from_toml(
     convert_paths: bool = True,
     convert_dates: bool = True,
 ) -> Type[T]:
+    """Creates a config from a TOML file cascade."""
     return cfg_from_file(
         paths,
         config_class,
@@ -171,6 +173,7 @@ def cfg_from_yaml(
     convert_paths: bool = True,
     convert_dates: bool = True,
 ) -> Type[T]:
+    """Creates a config from a YAML file cascade."""
     return cfg_from_file(
         paths,
         config_class,
@@ -349,6 +352,7 @@ def _normalize_hint(hint: Type) -> Type:
 def _custom_conversions(
     instance: T, config_class: T, converters: Dict[T, Callable]
 ) -> None:
+    """Iterates over attributes of instance and performs custom conversions."""
     hints = typing.get_type_hints(config_class)
     for attr, raw_hint in hints.items():
         hint_type = _normalize_hint(raw_hint)
@@ -366,6 +370,7 @@ def _custom_conversions(
 
 
 def _convert_date(d: dt.date | dt.datetime | str) -> dt.datetime:
+    """Converts date, and ISO-8601 strings to datetime."""
     if isinstance(d, dt.datetime):
         return d
 

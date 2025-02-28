@@ -32,6 +32,14 @@ Separated Nested Config:
     Example: tests/itests/test_configs/toml/separated_nested_config.toml
     This file is used by the Nested With Pointer Config to store the nested 
     sub-config data.
+
+Nested Cycle A and B Configs:
+    Example: tests/itests/test_configs/toml/nested_cycle_a.toml and 
+    tests/itests/test_configs/toml/nested_cycle_b.toml
+    These files are used to create a cyclic sub-config pointer reference to 
+    verify that the code will detect the cycle and raise an error. So the "A" 
+    file will have a sub-config that points to the "B" file.  The "B" file will
+    have a sub-config that points back to the "A" file.
 """
 
 from __future__ import annotations

@@ -11,6 +11,8 @@ A minimal library to assist with storing configuration information in dataclasse
 
 ### Cascading Configuration
 
+### Custom Conversions
+
 ### Errors
 
 ### Validation
