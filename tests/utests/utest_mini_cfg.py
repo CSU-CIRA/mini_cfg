@@ -363,3 +363,39 @@ class Test_Validation(unittest.TestCase):
     def test_ValidationNotCalled_SubLevelValidationNotReached(self) -> None:
         cfg = self._get_test_config()
         self.assertFalse(cfg.sub_config.bar.reached)
+
+
+@dataclasses.dataclass
+class AlreadyConverted(mini_cfg.BaseConfig):
+    bar: int
+
+
+@dataclasses.dataclass
+class TopLevelHasConvertedSubClass(mini_cfg.BaseConfig):
+    foo: AlreadyConverted
+
+
+class Test_AlreadyConvertedCase(unittest.TestCase):
+    def test_AlreadyConvertedSubClass_ProducesCorrectConfig(self):
+        cfg_dict = {"foo": AlreadyConverted(10)}
+        cfg = mini_cfg.cfg_from_dict(cfg_dict, TopLevelHasConvertedSubClass)
+
+        self.assertEqual(cfg.foo.bar, 10)
+
+
+@dataclasses.dataclass
+class WontBeConverted(mini_cfg.BaseConfig):
+    bar: int
+
+
+@dataclasses.dataclass
+class TopLevelWithUnconvertableSubClass:
+    foo: WontBeConverted
+
+
+class Test_UnconvertableDataCase(unittest.TestCase):
+    def test_NonStrOrDictOrValidInstanceGivenForSubclass_RaisesTypeError(self):
+        # This int given for foo can't be converted to a WontBeConverted instance
+        cfg_dict = {"foo": 500}
+        with self.assertRaises(TypeError):
+            mini_cfg.cfg_from_dict(cfg_dict, TopLevelWithUnconvertableSubClass)
