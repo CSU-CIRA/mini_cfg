@@ -23,18 +23,9 @@ class BaseConfig:
     def validate(self) -> None:
         self._do_validation()
 
-        hints = typing.get_type_hints(self.__class__)
-        for attr, raw_hint in hints.items():
-            hint_type = _normalize_hint(raw_hint)
-            given_value = self.__dict__[attr]
-
-            if not _is_attr_base_config(hint_type):
-                continue
-
-            if _is_optional_hint_set_to_none(raw_hint, given_value):
-                continue
-
-            given_value.validate()
+        for value in self.__dict__.values():
+            if isinstance(value, BaseConfig):
+                value.validate()
 
     def _do_validation(self) -> None:
         pass
@@ -69,6 +60,15 @@ def cfg_from_file(
     except Exception as ex:
         _add_note(ex, paths, config_class)
         raise
+
+
+def _convert_single_path_to_list(
+    paths: pathlib.Path | List[pathlib.Path],
+) -> List[pathlib.Path]:
+    if isinstance(paths, pathlib.Path):
+        return [paths]
+
+    return paths
 
 
 def _eval_cascade(paths: pathlib.Path, reader: FileParserFunc) -> Dict[str, Any]:
@@ -110,6 +110,26 @@ def _check_for_cycle(
                 f"File history: {parent_paths}."
             )
             raise ValueError(msg)
+
+
+def recursive_update_dict(src_dict: Dict[str, Any], dst_dict: Dict[str, Any]):
+    for k, v in src_dict.items():
+        if _val_is_dict(v):
+            if k not in dst_dict:
+                dst_dict[k] = {}
+
+            recursive_update_dict(v, dst_dict[k])
+        else:
+            dst_dict[k] = v
+
+
+def _val_is_dict(val: Any) -> bool:
+    try:
+        val.items()
+    except AttributeError:
+        return False
+
+    return True
 
 
 def _read_toml(path: pathlib.Path) -> Dict[str, Any]:
@@ -162,35 +182,6 @@ def cfg_from_yaml(
     )
 
 
-def _convert_single_path_to_list(
-    paths: pathlib.Path | List[pathlib.Path],
-) -> List[pathlib.Path]:
-    if isinstance(paths, pathlib.Path):
-        return [paths]
-
-    return paths
-
-
-def recursive_update_dict(src_dict: Dict[str, Any], dst_dict: Dict[str, Any]):
-    for k, v in src_dict.items():
-        if _val_is_dict(v):
-            if k not in dst_dict:
-                dst_dict[k] = {}
-
-            recursive_update_dict(v, dst_dict[k])
-        else:
-            dst_dict[k] = v
-
-
-def _val_is_dict(val: Any) -> bool:
-    try:
-        val.items()
-    except AttributeError:
-        return False
-
-    return True
-
-
 def cfg_from_dict(
     d: Dict[str, Any],
     config_class: T,
@@ -206,6 +197,8 @@ def cfg_from_dict(
     if converters is None:
         converters = {}
     else:
+        # Avoid side effect of adding things to the converters by making a
+        # shallow copy.
         converters = dict(converters)
 
     if pathlib.Path not in converters and convert_paths:
@@ -238,16 +231,26 @@ def _convert_sub_classes(
     convert_dates: bool = True,
     parent_files: Optional[List[pathlib.Path]] = None,
 ) -> None:
+    """Iterates over attributes of instance and converts sub-classes it finds.
+
+    Each attribute that has a type hint that is either in the sub_classes list,
+    or is a child class of BaseConfig will have its value converted to an instance
+    of the type hint's class.  The value of the attribute must be a dictionary,
+    or a string that is assumed to be a path to another config file. If the
+    value of the attribute is already an instance of the type hint's class, then
+    the attribute will be skipped.  Otherwise, a TypeError will be thrown. If an
+    attribute is Optional and set to None, then conversion will be skipped.
+    """
     if sub_classes is None:
         sub_classes = []
 
     hints = typing.get_type_hints(config_class)
-    for attr, raw_hint in hints.items():
+    for attr_name, raw_hint in hints.items():
         hint_type = _normalize_hint(raw_hint)
         if not _is_attr_sub_class(hint_type, sub_classes):
             continue
 
-        given_value = instance.__dict__[attr]
+        given_value = instance.__dict__[attr_name]
 
         if _is_optional_hint_set_to_none(raw_hint, given_value):
             continue
@@ -256,7 +259,7 @@ def _convert_sub_classes(
             continue
 
         if isinstance(given_value, dict):
-            instance.__dict__[attr] = cfg_from_dict(
+            instance.__dict__[attr_name] = cfg_from_dict(
                 given_value,
                 hint_type,
                 sub_classes,
@@ -268,7 +271,7 @@ def _convert_sub_classes(
             )
         elif isinstance(given_value, str):
             sub_file_path = pathlib.Path(given_value)
-            instance.__dict__[attr] = cfg_from_file(
+            instance.__dict__[attr_name] = cfg_from_file(
                 sub_file_path,
                 hint_type,
                 parser_func,
@@ -279,7 +282,7 @@ def _convert_sub_classes(
                 parent_files,
             )
         else:
-            _raise_type_error(attr, hint_type, given_value)
+            _raise_type_error(attr_name, hint_type, given_value)
 
 
 def _raise_type_error(attr: str, hint_type: Type, given_value: Any) -> None:
