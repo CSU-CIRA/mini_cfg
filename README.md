@@ -17,5 +17,7 @@ A minimal library to assist with storing configuration information in dataclasse
 
 ### Validation
 
+### Custom Reader
+
 
 
