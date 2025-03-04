@@ -6,7 +6,7 @@ structure of your code.
 It is almost always desirable to move parameters for executable code into a 
 configuration file. This is easy to achieve using a `dataclass` and Python's 
 buit-in TOML reader:
-```Python
+```python
 import dataclasses
 import tomllib
 
