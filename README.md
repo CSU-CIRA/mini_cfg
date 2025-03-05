@@ -460,11 +460,18 @@ to a file that does not exist for its `PlotParams` sub-configuration.
 
 
 ### Validation
-The `mini_cfg` library provides a simple mechanism for validation.  The 
-`mini_cfg.BaseConfig` class provides the `validate` method.  This method will
-recursively call the `_do_validation` method on itself and any attributes that
-are also child classes of `mini_cfg.BaseConfig`.  Your config classes can then
-implement `_do_validation` to inspect and validate attributes in your instance.
+By using `dataclasses` to store configuration, some validation is performed by
+simply constructing the class. For example, you will receive an error if your
+config omits a required attribute.  However, any validation that requires
+inspecting the values of an attribute will not be performed without additional
+code.  
+
+The `mini_cfg` library provides a simple mechanism for performing additional
+validation.  The `mini_cfg.BaseConfig` class provides the `validate` method.
+This method will recursively call the `_do_validation` method on itself and any
+attributes that are also child classes of `mini_cfg.BaseConfig`.  Your config
+classes can then implement `_do_validation` to inspect and validate attributes
+in your instance.
 
 Example:
 ```python
@@ -533,4 +540,17 @@ def read_json(path: pathlib.Path) -> Dict[str, Any]:
 config = mini_cfg.cfg_from_file(config_file, Config, reader=read_json)
 ```
 
+`mini_cfg` provides a parameterized integration test suite to make testing a new
+reader relatively straightforward.  To use this test suite, write a
+`unittest.TestCase` that calls `mini_cfg.file_test_suite.perform_tests`. This
+function takes a single parameter which is a
+`mini_cfg.file_test_suite.TestFixture` object.  This is a `dataclass` that
+simply stores the reader function being tested, the `TestCase` that is
+performing the testing, and paths for a set of config files that will be used to
+perform the tests.  You can see `tests/itests/itest_toml_config.py` as an
+example for how to use the test suite. 
 
+You will need to create a set of test config files with specific contents in
+order to test your reader. See the `mini_cfg.file_test_suite` docstring for
+details on how to create these config files. The
+`tests/itests/test_configs/toml/` can be used as an example.

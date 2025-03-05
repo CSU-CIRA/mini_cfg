@@ -1,8 +1,7 @@
 import pathlib
 import unittest
 
-from mini_cfg import mini_cfg
-from tests.itests import file_test_suite
+from mini_cfg import file_test_suite, mini_cfg
 
 BASIC_CONFIG_FILE = pathlib.Path("tests/itests/test_configs/yaml/basic_config.yaml")
 NESTED_CONFIG_FILE = pathlib.Path("tests/itests/test_configs/yaml/nested_config.yaml")

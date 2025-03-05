@@ -10,36 +10,76 @@ tests/itests/test_configs/toml/
 Basic Config:
     Example: tests/itests/test_configs/toml/basic_config.toml
     This file is used to verify that a simple config file without nesting can
-    be parsed.  
+    be parsed. The reader should produce the following dictionary from the file:
+    {
+        "foo": 10, 
+        "full_dt": "2025-02-06 12:05:01", # Can also be a datetime
+        "converted_dt": "2025-02-06", # Can also be a date
+        "filename": "some_file.txt"
+    }   
 
 Nested Config:
     Example: tests/itests/test_configs/toml/nested_config.toml
     This file is used to verify that a config file with a nested sub-config can
-    be parsed.
+    be parsed. The reader should produce the following dictionary from the file:
+    {
+        "nested":
+        {
+            "foo": 10,
+            "filename": "some_file.txt" 
+        }
+    }
 
 Cascaded Nested Config:
-    Example: tests/itests/test_configs/toml/cascaded_config.toml
+    Example: tests/itests/test_configs/toml/cascaded_config.toml 
     This file is used to verify that a nested value can be overrided with config
-    cascading.
+    cascading. This will be used in the cascade: [Nested Config, Cascaded Nested
+    Config] to override a value in Nested Config. The reader should produce the
+    following dictionary from the file:
+    {
+        "nested":
+        {
+            "foo": 999
+        }
+    }
 
 Nested With Pointer Config:
-    Example: tests/itests/test_configs/toml/nested_with_pointer_config.toml
+    Example: tests/itests/test_configs/toml/nested_with_pointer_config.toml 
     This file is used to verify that a config file with a nested sub-config can
     point to a separate config file. This separate file will be parsed as if its
-    contents were included in the top-level config file.
+    contents were included in the top-level config file. The reader should
+    produce the following dictionary from the file:
+    {
+        "nested": "path/to/Separated Nested Config"
+    }
 
 Separated Nested Config:
     Example: tests/itests/test_configs/toml/separated_nested_config.toml
-    This file is used by the Nested With Pointer Config to store the nested 
-    sub-config data.
+    This file is used by the Nested With Pointer Config to store the nested
+    sub-config data. The reader should produce the following dictionary from the
+    file:
+    {
+        "foo": 10,
+        "filename": "some_file.txt"
+    }
 
 Nested Cycle A and B Configs:
     Example: tests/itests/test_configs/toml/nested_cycle_a.toml and 
     tests/itests/test_configs/toml/nested_cycle_b.toml
-    These files are used to create a cyclic sub-config pointer reference to 
-    verify that the code will detect the cycle and raise an error. So the "A" 
+    These files are used to create a cyclic sub-config pointer reference to
+    verify that the code will detect the cycle and raise an error. So the "A"
     file will have a sub-config that points to the "B" file.  The "B" file will
-    have a sub-config that points back to the "A" file.
+    have a sub-config that points back to the "A" file. The reader should
+    produce the following dictionaries from the files:
+    Nested Cycle A:
+    {
+        "nested": "path/to/Nested Cycle B"
+    }
+
+    Nested Cycle B:
+    {
+        "nested": "path/to/Nested Cycle A"
+    }
 """
 
 from __future__ import annotations
@@ -151,7 +191,7 @@ def _test_basic_DateNotConvertedWhenDisabled(fix: TestFixture) -> None:
             convert_dates=False,
         )
 
-        fix.tester.assertIsInstance(cfg.converted_dt, dt.date)
+        fix.tester.assertIn(type(cfg.converted_dt), [str, dt.date])
 
 
 def _test_basic_DateParsedCorrectlyWhenNotConverted(fix: TestFixture) -> None:
@@ -164,7 +204,10 @@ def _test_basic_DateParsedCorrectlyWhenNotConverted(fix: TestFixture) -> None:
             convert_dates=False,
         )
 
-        fix.tester.assertEqual(cfg.converted_dt, PARTIAL_DATE_AS_DATE)
+        if isinstance(cfg.converted_dt, dt.date):
+            fix.tester.assertEqual(cfg.converted_dt, PARTIAL_DATE_AS_DATE)
+        else:
+            fix.tester.assertEqual(cfg.converted_dt, "2025-02-06")
 
 
 def _test_basic_PathNotConvertedWhenDisabled(fix: TestFixture) -> None:
