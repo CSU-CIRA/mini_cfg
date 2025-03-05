@@ -20,6 +20,19 @@ are necessary if you only use TOML files.  If you need to use YAML files then
 the `pyyaml` library should be installed in your environment.  You may pass a
 reader function that the library can use to read additional formats.
 
+## Installation
+If you are only using TOML files then you can install `mini_cfg` using the
+following command:
+```bash
+pip install git+ssh://git@bear.cira.colostate.edu/rdemaria/mini_cfg.git
+```
+
+If you are using YAML files then you can install `mini_cfg` with its optional
+`pyyaml` dependency using the following command:
+```bash
+pip install 'mini_cfg[read_yaml] @ git+ssh://git@bear.cira.colostate.edu/rdemaria/mini_cfg.git'
+```
+
 ## Usage
 
 ### Basics
