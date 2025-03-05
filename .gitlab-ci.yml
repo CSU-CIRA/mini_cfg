@@ -1,6 +1,6 @@
 before_script:
   - python --version
-  - pip install .
+  - pip install .[read_yaml]
 
 stages:
   - test
