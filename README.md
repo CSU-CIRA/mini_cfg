@@ -1,43 +1,24 @@
 # mini_cfg
-A minimal, no dependency, library that assists with storing configuration 
-information in dataclasses and makes no assumptions about the high level 
-structure of your code.
+A minimal, no dependency, library that assists with storing configuration
+information in dataclasses and makes no assumptions about the high level
+structure of your code. Compatible with
+[pydantic](https://docs.pydantic.dev/latest/) for advanced configuration
+validation. 
 
-It is almost always desirable to move parameters for executable code into a 
-configuration file. This is easy to achieve using a `dataclass` and Python's 
-buit-in TOML reader:
-```python
-import dataclasses
-import pathlib
-import tomllib
+It is almost always desirable to move parameters for executable code into a
+configuration file. This is easy to achieve using a `dataclass` and Python's
+buit-in TOML reader. For simple applications, a few lines of code to instantiate
+a `dataclass` from a dictionary read from a TOML file is usually sufficient.  
+However, as your code starts becoming more complex you begin to accumulate more
+boilerplate to organize configuration data, perform conversions from the raw
+config input, and perform validation. This library was written to reduce the
+amount of boilerplate code that needs to be written to handle common "advanced"
+configuration use cases.  
 
-@dataclasses.dataclass
-class Config:
-    a: int
-    b: float
-
-def read_config(filename: pathlib.Path) -> Config:
-    with open(filename, "rb") as f:
-        data = tomllib.load(f)
-        return Config(**data)
-
-def main():
-    config_file = pathlib.Path("example.toml")
-
-    config = read_config(config_file)
-    print("a:", config.a)
-    print("b:", config.b)
-```
-
-For simple applications, the above code is usually sufficient.  However, in
-more advanced applications, code starts accumulating to handle the configuration 
-files/data. This library was written to reduce the amount of boilerplate code
-that needs to be written to handle common "advanced" configuration use cases.  
-
-At the moment, only TOML and YAML files are supported.  No extermal libraries 
-are necessary if you only use TOML files.  If you need to use YAML files then the
-`pyyaml` library should be installed in your environment.  You may pass a reader 
-function that the library can use to read additional formats.
+At the moment, only TOML and YAML files are supported.  No external libraries
+are necessary if you only use TOML files.  If you need to use YAML files then
+the `pyyaml` library should be installed in your environment.  You may pass a
+reader function that the library can use to read additional formats.
 
 ## Usage
 
@@ -64,6 +45,8 @@ class Config:
 
 config_file = pathlib.Path("example.toml")
 
+# We just need to give cfg_from_toml the config filename and the class that is 
+# being constructed from the config.
 config = mini_cfg.cfg_from_toml(config_file, Config)
 print(config.foo)
 ``` 
@@ -79,6 +62,7 @@ config = mini_cfg.cfg_from_dict(config_dict, Config)
 ```
 
 `Optional` attributes as well as attributes with default values are fully supported:
+
 `example.toml`:
 ```toml
 foo = 10
@@ -97,6 +81,7 @@ config_file = pathlib.Path("example.toml")
 config = mini_cfg.cfg_from_toml(config_file, Config)
 print(config)
 ```
+
 This produces the output:
 ```
 Config(foo=10, flag=False, optional=None)
@@ -106,21 +91,25 @@ Config(foo=10, flag=False, optional=None)
 
 #### pathlib.Path Conversions
 It is usually preferable to represent paths using `pathlib.Path` objects rather
-than storing them as strings.  However, TOML/YAML parsers do not automatically 
-produce `pathlib.Path` objects. Converting strings to paths can produce a lot
-of boilerplate code.  By default, any attribute of your `dataclass` whose type
-hint is `pathlib.Path` will have its value converted from `str` to 
-`pathlib.Path`.  To disable this behaviour, you can pass `convert_paths=False`
-to `cfg_from_toml`/`cfg_from_yaml`/`cfg_from_dict`/`cfg_from_file`.
-example.toml:
+than storing them as strings.  However, TOML/YAML parsers do not automatically
+produce `pathlib.Path` objects. Converting strings to paths can produce a lot of
+boilerplate code.  By default, any attribute of your `dataclass` whose type hint
+is `pathlib.Path` will have its value converted from `str` to `pathlib.Path`.
+To disable this behaviour, you can pass `convert_paths=False` to
+`cfg_from_toml`/`cfg_from_yaml`/`cfg_from_dict`/`cfg_from_file`.
+
+`example.toml`:
 ```toml
 some_file = "path/to/file.txt"
 ``` 
 
-Python to demonstrate automatic conversion to `Path`s as well as disabling conversion:
+Python to demonstrate automatic conversion to `Path`s as well as disabling 
+conversion:
 ```python
 @dataclasses.dataclass
 class Config:
+    # Our attribute has a pathlib.Path type hint, so mini_cfg will try to
+    # convert the value read from the config file to pathlib.Path.
     some_file: pathlib.Path
 
 config_file = pathlib.Path("example.toml")
@@ -140,18 +129,17 @@ path/to/file.txt   <class 'str'>
 ```
 
 #### Datetime Conversions
-When given a full ISO-8601 time, `pyyaml` and `tomllib` will produce a `datetime`
-object.  However, when they are given just an ISO-8601 year, month, and day they
-will produce a `date` object instead.  This can cause a problem if downstream
-code assumes that hours, minutes, seconds, etc. are always available in the 
-objects they are given.  Additionally a dictionary obtained outside of a YAML or
-TOML file may represent times as strings.  By default, any attribute of your 
-`dataclass` whose type hint is `datetime` will have its value converted to
-`datetime`.  To disable this behaviour, you can pass `convert_dates=False`
-to `cfg_from_toml`/`cfg_from_yaml`/`cfg_from_dict`/`cfg_from_file`.  The actual 
-value of the 
-attribute prior to conversion may be a `datetime` object, a `date` object, or
-a string representing an ISO-8601 compatible date.
+When given a full ISO-8601 time, `pyyaml` and `tomllib` will produce a
+`datetime` object.  However, when they are given just an ISO-8601 year, month,
+and day they will produce a `date` object instead.  This can cause a problem if
+downstream code assumes that hours, minutes, seconds, etc. are always available
+in the objects they are given.  Additionally a dictionary obtained outside of a
+YAML or TOML file may represent times as strings.  By default, any attribute of
+your `dataclass` whose type hint is `datetime` will have its value converted to
+`datetime`.  To disable this behaviour, you can pass `convert_dates=False` to
+`cfg_from_toml`/`cfg_from_yaml`/`cfg_from_dict`/`cfg_from_file`.  The actual
+value of the attribute prior to conversion may be a `datetime` object, a `date`
+object, or a string representing an ISO-8601 compatible date.
 
 `example.toml`:
 ```toml
@@ -195,16 +183,18 @@ This produces the output:
 ### Hierarchical Configuration
 
 #### Sub-Configuration Classes
-Although it is possible to have a flat configuration where all the parameters are
-part of a single large configuration object, it is usually beneficial to split 
-parameters into sections by sub-system.  Within your code, this usually involves
-making a "top-level" `dataclass` that has other `dataclass` instances as attributes.
-The `mini_cfg` library provides a couple of simple mechanisms for converting 
-the dictionaries produced by YAML/TOML to additional sub-`dataclass` objects.
+Although it is possible to have a flat configuration where all the parameters
+are part of a single large configuration object, it is usually beneficial to
+split parameters into sections by sub-system.  Within your code, this usually
+involves making a "top-level" `dataclass` that has other `dataclass` instances
+as attributes. The `mini_cfg` library provides a couple of simple mechanisms for
+converting the dictionaries produced by YAML/TOML to additional sub-`dataclass`
+objects.
 
-The simplest method is to inherit your configuration classes from `mini_cfg.BaseConfig`.
-Any sub-configuration attributes with a type hint that inherits from `mini_cfg.BaseConfig`
-will automatically be converted from a dictionary to an instance of your class.
+The simplest method is to inherit your configuration classes from
+`mini_cfg.BaseConfig`. Any sub-configuration attributes with a type hint that
+inherits from `mini_cfg.BaseConfig` will automatically be converted from a
+dictionary to an instance of your class.
 
 `example.toml`:
 ```toml
@@ -234,7 +224,7 @@ class PlotParams(mini_cfg.BaseConfig):
 # Because this is the "top" of the hierarchy and its class is being passed 
 # directly to cfg_from_toml, this doesn't need to inherit from 
 # mini_cfg.BaseConfig. It can if you want for consistency or if you need 
-# BaseConfig's other features.
+# BaseConfig's validation feature.
 @dataclasses.dataclass
 class TopLevelConfig(mini_cfg.BaseConfig):
     reader_params: ReaderParams
@@ -257,9 +247,10 @@ ReaderParams(reader='abi_l1b')
 PlotParams(cmap='viridis', vmin=0.0, vmax=1.0)
 ```
 
-However, there may be cases where you don't want to or can't make your sub-configuration
-classes inherit from `mini_cfg.BaseConfig`.  In this case, you can pass a list
-of sub-configuration classes to `cfg_from_toml`, `cfg_from_yaml`, and `cfg_from_dict`.
+However, there may be cases where you don't want to or can't make your
+sub-configuration classes inherit from `mini_cfg.BaseConfig`.  In this case, you
+can pass a list of sub-configuration classes to `cfg_from_toml`,
+`cfg_from_yaml`, `cfg_from_dict`, and `cfg_from_file`.
 
 `example.toml`:
 ```toml
@@ -269,7 +260,7 @@ lat = 30.0
 ```
 
 Python demonstrating how to explicitly specify the sub-configuration classes 
-that should be converted.
+that should be converted:
 ```python
 from library_you_did_not_write import coords
 
@@ -287,25 +278,25 @@ class Config:
 
 config_file = pathlib.Path("example.toml")
 
-config = mini_cfg.cfg_from_toml(config_file, Config, sub_classes=[coords.Position])
+sub_classes = [coords.Position]
+config = mini_cfg.cfg_from_toml(config_file, Config, sub_classes=sub_classes)
 print(config.position)
 ```
 
 #### Sub-Configuration File Pointers
-When using configuration files it is very common to find that a block of parameters
-will be copy-pasted among several config files. This can lead to problems common 
-when copy-paste is used. For example, you may have several
+When using configuration files it is very common to find that a block of
+parameters will be copy-pasted among several config files. This can lead to
+problems common when copy-paste is used. For example, you may have several
 config files for processing data from different satellite sources, but they all
-share the same plotting parameters. To solve this, you copy-paste the plotting parameters
-across your files.  But then, you need to change a single plotting parameter.  You 
-then need to change this parameter in all of you files.  
+share the same plotting parameters. To solve this, you copy-paste the plotting
+parameters across your files.  But then you need to change a single plotting
+parameter.  This requires you to change this parameter in all of you files.  
 
-To avoid this problem,
-`mini_cfg` allows your config files to point to another file when specifying 
-sub-configuration objects.  The file will 
-be read and converted to your sub-configuration class.  So in the previous example,
-you can make a single config file containing your plotting parameters.  Your 
-other config files would then all point to the file containing your plotting 
+To avoid this problem, `mini_cfg` allows your config files to point to another
+file when specifying sub-configuration objects.  The file will be read and
+converted to your sub-configuration class.  So in the above example, you can
+make a single config file containing your plotting parameters.  Your other
+config files would then all point to the file containing your plotting
 parameters.
 
 `example.toml`:
@@ -342,21 +333,21 @@ print(config.plot_params.cmap)
 This does not work with `cfg_from_dict` since that function will not know how
 to read the sub-configuration file.
 
-If a cycle is created via these file pointers, then a `ValueError` will be thrown
-when the files are parsed.
+If a cycle is created via these file pointers, then a `ValueError` will be
+thrown when the files are parsed.
 
 ### Cascading Configuration
-It is frequently desirable to override a handful of parameters rather than 
-alter a config file.  For example, you may have a config setup for your code, 
-but for debugging purposes you would like to change a few parameters. 
-Rather than altering your file and potentially forgetting to change parameters
-back to what they were, `mini_cfg` allows you to overwrite parameters by providing
-a file "cascade" to `cfg_from_toml`, `cfg_from_yaml`, or `cfg_from_file`. 
+It is frequently desirable to override a handful of parameters rather than alter
+a config file.  For example, you may have a config setup for your code, but for
+debugging purposes you would like to change a few parameters. Rather than
+altering your file and potentially forgetting to change parameters back to what
+they were, `mini_cfg` allows you to overwrite parameters by providing a file
+"cascade" to `cfg_from_toml`, `cfg_from_yaml`, or `cfg_from_file`. 
 
 Instead of passing an individual config file to these functions, you can provide
-a list of files.  Each file will be read and recursively merged such that files 
-that appear later in the list will overwrite entries that appeared in earlier files
-or add entries that were not present in earlier files.
+a list of files.  Each file will be read and recursively merged such that files
+that appear later in the list will overwrite entries that appeared in earlier
+files or add entries that were not present in earlier files.
 
 `example.toml`
 ```toml
@@ -374,7 +365,7 @@ vmax = 1.0
 foo = 999 
 # Since debug_flag was not included in example.toml, the resulting Config
 # object would have used the default value of false.  However, we're including
-# it here
+# it here so it gets set to true.
 debug_flag = true 
 
 [plot_params]
@@ -412,24 +403,25 @@ Config(foo=999, plot_params=PlotParams(cmap='gray', vmin=0.0, vmax=1.0), debug_f
 ```
 
 The cascade is evaluated *before* any sub-config conversion is performed.  This
-means that use of both a cascade and sub-config file pointers may behave unintuitively 
-or potentially cause parsing to fail. 
+means that use of both a cascade and sub-config file pointers may behave
+unintuitively or potentially cause parsing to fail. 
 
-If use of a cascade is preferable
-to you, it can be used instead of file pointers to achieve the same effect.  As
-an example, you could store general options in a config and plotting parameters
-in a second config. You could then create a cascade that merges both files together.
+If use of a cascade is preferable to you, it can be used instead of file
+pointers to achieve the same effect.  As an example, you could store general
+options in a config and plotting parameters in a second config. You could then
+create a cascade that merges both files together.
 
 ### Custom Conversions
-It is also possible to perform custom conversions by providing `cfg_from_toml`, `cfg_from_yaml`, `cfg_from_dict`, or `cfg_from_file` with a dictionary that maps classes to a 
-Callable that will convert config entries to that class.
+It is also possible to perform custom conversions by providing `cfg_from_toml`,
+`cfg_from_yaml`, `cfg_from_dict`, or `cfg_from_file` with a dictionary that maps
+classes to a Callable that will convert the config value to that class.
 
 `example.toml`:
 ```toml
 regex = 'foo\S+nc'
 ```
 
-Python demonstrating custom conversion used to convert the string in the toml
+Python demonstrating custom conversion used to convert the string in the TOML
 file to a regular expression:
 ```python
 import re
@@ -453,9 +445,9 @@ If an error occurs while making use of file pointers or cascading, it can become
 difficult to determine which config file caused the problem.  For that reason,
 `mini_cfg` adds extra information to any `Exception`s encountered while parsing
 config files.  The history of each parsed file is included at the bottom of the
-exception's stack trace.  The most recently parsed file is included at the top of
-the history and the oldest parsed file is at the bottom.  Each line in the history
-also includes the config class that was being converted.
+exception's stack trace.  The most recently parsed file is included at the top
+of the history and the oldest parsed file is at the bottom.  Each line in the
+history also includes the config class that was being converted.
 
 Example file history:
 ```
@@ -464,7 +456,7 @@ Error creating config type: <class '__main__.PlotParams'> from cascade: ['does_n
 Error creating config type: <class '__main__.Config'> from cascade: ['example.toml']
 ```
 The above error was created because `example.toml` used a file pointer that refered
-to a file that does not exist for its PlotParams sub-configuration.
+to a file that does not exist for its `PlotParams` sub-configuration.
 
 
 ### Validation
@@ -514,6 +506,7 @@ class Config(pydantic.BaseModel):
 config_file = pathlib.Path("example.toml")
 config = mini_cfg.cfg_from_toml(config_file, Config, sub_classes=[PlotParams])
 ```
+
 This produces the output:
 ```
 pydantic_core._pydantic_core.ValidationError: 1 validation error for Config
