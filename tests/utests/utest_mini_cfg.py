@@ -175,6 +175,13 @@ class Test_recursive_update_dict(unittest.TestCase):
         mini_cfg.recursive_update_dict(src, dst)
         self.assertEqual(dst["a"]["foo"], 10)
 
+    def test_DstNonDictValueOverwrittenByDictInSrc(self):
+        src = {"a": {"foo": 10}}
+        dst = {"a": "a string"}
+
+        mini_cfg.recursive_update_dict(src, dst)
+        self.assertEqual(dst["a"]["foo"], 10)
+
 
 class CustomDataType:
     def __init__(self, value: str):

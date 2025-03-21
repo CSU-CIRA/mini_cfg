@@ -1,3 +1,5 @@
+"""Provides all of mini_cfg functionality."""
+
 import dataclasses
 import datetime as dt
 import inspect
@@ -8,7 +10,15 @@ import types
 import typing
 from typing import Any, Callable, Dict, List, Optional, Type, TypeVar
 
+# This represents a generic class passed in by the user.
 T = TypeVar("T")
+# Optional list of passed classes that config sub-dictionaries will be converted to.
+SubClassList = Optional[List[Type[T]]]
+# Optional dictionary mapping classes to a Callable that will convert config
+# dictionary values to an instance of the class.
+ConverterDict = Optional[Dict[Type[T], Callable]]
+# Callable that will take a file path and, presumably, read the file at the path
+# to produce a dictionary.
 FileParserFunc = Callable[[pathlib.Path], Dict[str, Any]]
 
 LOG = logging.getLogger(__name__)
@@ -56,14 +66,14 @@ class BaseConfig:
 
 def cfg_from_file(
     paths: pathlib.Path | List[pathlib.Path],
-    config_class: T,
+    config_class: Type[T],
     reader: FileParserFunc,
-    sub_classes: Optional[List[T]] = None,
-    converters: Optional[Dict[T, Callable]] = None,
+    sub_classes: SubClassList = None,
+    converters: ConverterDict = None,
     convert_paths: bool = True,
     convert_dates: bool = True,
     parent_files: Optional[List[pathlib.Path]] = None,
-) -> Type[T]:
+) -> T:
     """Creates a config from a file cascade using a provided reader callable.
 
     Generic config construction function that assumes that a reader is provided
@@ -87,12 +97,12 @@ def cfg_from_file(
     Args:
         paths (pathlib.Path | List[pathlib.Path]): Config filename or list of
             filenames making a cascade.
-        config_class (T): The class to convert the cascade to.
+        config_class (Type[T]): The class to convert the cascade to.
         reader (FileParserFunc): Reader function that takes a filename and
             returns a dictionary.
-        sub_classes (Optional[List[T]], optional): List of classes that can be
+        sub_classes (SubClassList, optional): List of classes that can be
             converted to sub-config objects. Defaults to None.
-        converters (Optional[Dict[T, Callable]], optional): Dictionary mapping
+        converters (ConverterDict, optional): Dictionary mapping
             classes that may appear as attribute type hints on the config_class
             and the Callable that will convert whatever the value of the
             attribute is to an instance of the type hint class. Defaults to
@@ -116,7 +126,7 @@ def cfg_from_file(
             parent_files.
 
     Returns:
-        Type[T]: A instance of config_class constructed from the given config
+        T: A instance of config_class constructed from the given config
             cascase.
     """
     try:
@@ -149,7 +159,7 @@ def _convert_single_path_to_list(
     return paths
 
 
-def _eval_cascade(paths: pathlib.Path, reader: FileParserFunc) -> Dict[str, Any]:
+def _eval_cascade(paths: List[pathlib.Path], reader: FileParserFunc) -> Dict[str, Any]:
     final_dict = {}
     for path in paths:
         read_dict = reader(path)
@@ -211,6 +221,10 @@ def recursive_update_dict(src_dict: Dict[str, Any], dst_dict: Dict[str, Any]) ->
             if k not in dst_dict:
                 dst_dict[k] = {}
 
+            if not _val_is_dict(dst_dict[k]):
+                dst_dict[k] = v
+                continue
+
             recursive_update_dict(v, dst_dict[k])
         else:
             dst_dict[k] = v
@@ -239,12 +253,12 @@ def _read_yaml(path: pathlib.Path) -> Dict[str, Any]:
 
 def cfg_from_toml(
     paths: pathlib.Path | List[pathlib.Path],
-    config_class: T,
-    sub_classes: Optional[List[T]] = None,
-    converters: Optional[Dict[T, Callable]] = None,
+    config_class: Type[T],
+    sub_classes: SubClassList = None,
+    converters: ConverterDict = None,
     convert_paths: bool = True,
     convert_dates: bool = True,
-) -> Type[T]:
+) -> T:
     """Creates a config from a TOML file cascade.
 
     Wrapper for passing _read_toml to cfg_from_file.
@@ -252,10 +266,10 @@ def cfg_from_toml(
     Args:
         paths (pathlib.Path | List[pathlib.Path]): Config filename or list of
             filenames making a cascade.
-        config_class (T): The class to convert the cascade to.
-        sub_classes (Optional[List[T]], optional): List of classes that can be
+        config_class (Type[T]): The class to convert the cascade to.
+        sub_classes (SubClassList, optional): List of classes that can be
             converted to sub-config objects.
-        converters (Optional[Dict[T, Callable]], optional): Dictionary mapping
+        converters (ConverterDict, optional): Dictionary mapping
             classes that may appear as attribute type hints on the config_class
             and the Callable that will convert whatever the value of the
             attribute is to an instance of the type hint class. Defaults to
@@ -275,7 +289,7 @@ def cfg_from_toml(
             given config files.
 
     Returns:
-        Type[T]: A instance of config_class constructed from the given config
+        T: A instance of config_class constructed from the given config
             cascade.
     """
     return cfg_from_file(
@@ -291,12 +305,12 @@ def cfg_from_toml(
 
 def cfg_from_yaml(
     paths: pathlib.Path | List[pathlib.Path],
-    config_class: T,
-    sub_classes: Optional[List[T]] = None,
-    converters: Optional[Dict[T, Callable]] = None,
+    config_class: Type[T],
+    sub_classes: SubClassList = None,
+    converters: ConverterDict = None,
     convert_paths: bool = True,
     convert_dates: bool = True,
-) -> Type[T]:
+) -> T:
     """Creates a config from a YAML file cascade.
 
     Wrapper for passing _read_yaml to cfg_from_file.
@@ -305,9 +319,9 @@ def cfg_from_yaml(
         paths (pathlib.Path | List[pathlib.Path]): Config filename or list of
             filenames making a cascade.
         config_class (T): The class to convert the cascade to.
-        sub_classes (Optional[List[T]], optional): List of classes that can be
+        sub_classes (SubClassList, optional): List of classes that can be
             converted to sub-config objects.
-        converters (Optional[Dict[T, Callable]], optional): Dictionary mapping
+        converters (ConverterDict, optional): Dictionary mapping
             classes that may appear as attribute type hints on the config_class
             and the Callable that will convert whatever the value of the
             attribute is to an instance of the type hint class. Defaults to
@@ -328,7 +342,7 @@ def cfg_from_yaml(
             given config files.
 
     Returns:
-        Type[T]: A instance of config_class constructed from the given config
+        T: A instance of config_class constructed from the given config
             cascade.
     """
     return cfg_from_file(
@@ -344,14 +358,14 @@ def cfg_from_yaml(
 
 def cfg_from_dict(
     d: Dict[str, Any],
-    config_class: T,
-    sub_classes: Optional[List[T]] = None,
+    config_class: Type[T],
+    sub_classes: SubClassList = None,
     reader: Optional[FileParserFunc] = None,
-    converters: Optional[Dict[T, Callable]] = None,
+    converters: ConverterDict = None,
     convert_paths: bool = True,
     convert_dates: bool = True,
     parent_files: Optional[List[pathlib.Path]] = None,
-) -> Type[T]:
+) -> T:
     """Converts dictionary to given config class.
 
     After reading has been performed inside cfg_from_file, this function is
@@ -360,14 +374,14 @@ def cfg_from_dict(
 
     Args:
         d (Dict[str, Any]): Dictionary to convert.
-        config_class (T): The class to convert the dictionary to.
-        sub_classes (Optional[List[T]], optional): List of classes that can be
+        config_class (Type[T]): The class to convert the dictionary to.
+        sub_classes (SubClassList, optional): List of classes that can be
             converted to sub-config objects. Defaults to None.
         reader (Optional[FileParserFunc], optional): Reader function that takes
             a filename and returns a dictionary. This will not be used directly
             by this function, but it will be used if file pointers are
             encountered in the config file. Defaults to None.
-        converters (Optional[Dict[T, Callable]], optional): Dictionary mapping
+        converters (ConverterDict, optional): Dictionary mapping
             classes that may appear as attribute type hints on the config_class
             and the Callable that will convert whatever the value of the
             attribute is to an instance of the type hint class. Defaults to
@@ -390,7 +404,7 @@ def cfg_from_dict(
         ValueError: If file pointers are encountered and a cycle is detected.
 
     Returns:
-        Type[T]: A instance of config_class constructed from the given
+        T: A instance of config_class constructed from the given
             dictionary.
     """
     instance = config_class(**d)
@@ -412,7 +426,7 @@ def cfg_from_dict(
 
 
 def _add_auto_converters(
-    converters: Optional[Dict[T, Callable]] = None,
+    converters: Optional[Dict[Type[T], Callable]] = None,
     convert_paths: bool = True,
     convert_dates: bool = True,
 ) -> Dict[T, Callable]:
@@ -434,10 +448,10 @@ def _add_auto_converters(
 
 def _convert_sub_classes(
     instance: T,
-    config_class: T,
-    sub_classes: Optional[List[T]] = None,
+    config_class: Type[T],
+    sub_classes: SubClassList = None,
     parser_func: Optional[FileParserFunc] = None,
-    converters: Optional[Dict[T, Callable]] = None,
+    converters: ConverterDict = None,
     convert_paths: bool = True,
     convert_dates: bool = True,
     parent_files: Optional[List[pathlib.Path]] = None,
@@ -559,7 +573,7 @@ def _normalize_hint(hint: Type) -> Type:
 
 
 def _custom_conversions(
-    instance: T, config_class: T, converters: Dict[T, Callable]
+    instance: T, config_class: Type[T], converters: Dict[Type[T], Callable]
 ) -> None:
     """Iterates over attributes of instance and performs custom conversions.
 

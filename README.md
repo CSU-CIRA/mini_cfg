@@ -127,7 +127,7 @@ class Config:
 
 config_file = pathlib.Path("example.toml")
 
-config = mini_cfg.cfg_from_toml(config_File, Config)
+config = mini_cfg.cfg_from_toml(config_file, Config)
 config_conversion_disabled = mini_cfg.cfg_from_toml(
     config_file, Config, convert_paths=False)
 
