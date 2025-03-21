@@ -245,7 +245,15 @@ def _read_toml(path: pathlib.Path) -> Dict[str, Any]:
 
 
 def _read_yaml(path: pathlib.Path) -> Dict[str, Any]:
-    import yaml
+    try:
+        import yaml
+    except ImportError as ex:
+        msg = (
+            "pyyaml needed to use YAML config files. "
+            "Install with optional dependency: pip install mini_cfg[read_yaml]"
+        )
+        ex.add_note(msg)
+        raise
 
     with open(path, "r") as in_file:
         return yaml.safe_load(in_file)

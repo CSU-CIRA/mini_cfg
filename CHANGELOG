@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - More comments/documentation.
+- Better error message when attempting to use YAML configs when `pyyaml` is not
+    installed.
 
 ### Fixed
 - Fixed cascade bug caused by attempting to merge non dictionary sub-value in
