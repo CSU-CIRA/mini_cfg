@@ -5,6 +5,7 @@ import datetime as dt
 import inspect
 import logging
 import pathlib
+import re
 import tomllib
 import types
 import typing
@@ -72,6 +73,7 @@ def cfg_from_file(
     converters: ConverterDict = None,
     convert_paths: bool = True,
     convert_dates: bool = True,
+    convert_regex: bool = True,
     parent_files: Optional[List[pathlib.Path]] = None,
 ) -> T:
     """Creates a config from a file cascade using a provided reader callable.
@@ -113,6 +115,9 @@ def cfg_from_file(
         convert_dates (bool, optional): Whether or not to automatically convert
             attributes on the config_class with a type hint of datetime from
             date/datetime/str to datetime. Defaults to True.
+        convert_regex (bool, optional): Whether or not to automatically convert
+            attributes on the config_class with a type hint of re.Pattern from
+            str to re.Pattern. Defaults to True.
         parent_files (Optional[List[pathlib.Path]], optional): List of
             files previously used to recursively construct the config object and
             its sub-classes.  Will be checked for cycles. Defaults to None.
@@ -143,6 +148,7 @@ def cfg_from_file(
             converters,
             convert_paths,
             convert_dates,
+            convert_regex,
             file_history,
         )
     except Exception as ex:
@@ -266,6 +272,7 @@ def cfg_from_toml(
     converters: ConverterDict = None,
     convert_paths: bool = True,
     convert_dates: bool = True,
+    convert_regex: bool = True,
 ) -> T:
     """Creates a config from a TOML file cascade.
 
@@ -287,7 +294,9 @@ def cfg_from_toml(
         convert_dates (bool, optional): Whether or not to automatically convert
             datetime attributes from date/datetime/str to datetime. Defaults to
             True.
-
+        convert_regex (bool, optional): Whether or not to automatically convert
+            attributes on the config_class with a type hint of re.Pattern from
+            str to re.Pattern. Defaults to True.
     Raises:
         TypeError: If a sub-config is detected in a config_class attribute
             type hint, but the value of the attribute can not be converted.
@@ -308,6 +317,7 @@ def cfg_from_toml(
         converters,
         convert_paths,
         convert_dates,
+        convert_regex,
     )
 
 
@@ -318,6 +328,7 @@ def cfg_from_yaml(
     converters: ConverterDict = None,
     convert_paths: bool = True,
     convert_dates: bool = True,
+    convert_regex: bool = True,
 ) -> T:
     """Creates a config from a YAML file cascade.
 
@@ -339,7 +350,9 @@ def cfg_from_yaml(
         convert_dates (bool, optional): Whether or not to automatically convert
             datetime attributes from date/datetime/str to datetime. Defaults to
             True.
-
+        convert_regex (bool, optional): Whether or not to automatically convert
+            attributes on the config_class with a type hint of re.Pattern from
+            str to re.Pattern. Defaults to True.
     Raises:
         ImportError: If pyyaml is not installed in your environment.
         TypeError: If a sub-config is detected in a config_class attribute
@@ -361,6 +374,7 @@ def cfg_from_yaml(
         converters,
         convert_paths,
         convert_dates,
+        convert_regex,
     )
 
 
@@ -372,6 +386,7 @@ def cfg_from_dict(
     converters: ConverterDict = None,
     convert_paths: bool = True,
     convert_dates: bool = True,
+    convert_regex: bool = True,
     parent_files: Optional[List[pathlib.Path]] = None,
 ) -> T:
     """Converts dictionary to given config class.
@@ -400,6 +415,9 @@ def cfg_from_dict(
         convert_dates (bool, optional): Whether or not to automatically convert
             attributes on the config_class with a type hint of datetime from
             date/datetime/str to datetime. Defaults to True.
+        convert_regex (bool, optional): Whether or not to automatically convert
+            attributes on the config_class with a type hint of re.Pattern from
+            str to re.Pattern. Defaults to True.
         parent_files (Optional[List[pathlib.Path]], optional): List of
             files previously used to recursively construct the config object and
             its sub-classes.  Will be checked for cycles. Defaults to None.
@@ -417,7 +435,9 @@ def cfg_from_dict(
     """
     instance = config_class(**d)
 
-    converters = _add_auto_converters(converters, convert_paths, convert_dates)
+    converters = _add_auto_converters(
+        converters, convert_paths, convert_dates, convert_regex
+    )
 
     _convert_sub_classes(
         instance,
@@ -427,6 +447,7 @@ def cfg_from_dict(
         converters,
         convert_paths,
         convert_dates,
+        convert_regex,
         parent_files,
     )
     _custom_conversions(instance, config_class, converters)
@@ -437,6 +458,7 @@ def _add_auto_converters(
     converters: Optional[Dict[Type[T], Callable]] = None,
     convert_paths: bool = True,
     convert_dates: bool = True,
+    convert_regex: bool = True,
 ) -> Dict[T, Callable]:
     if converters is None:
         converters = {}
@@ -451,6 +473,9 @@ def _add_auto_converters(
     if dt.datetime not in converters and convert_dates:
         converters[dt.datetime] = _convert_date
 
+    if re.Pattern not in converters and convert_regex:
+        converters[re.Pattern] = re.compile
+
     return converters
 
 
@@ -462,6 +487,7 @@ def _convert_sub_classes(
     converters: ConverterDict = None,
     convert_paths: bool = True,
     convert_dates: bool = True,
+    convert_regex: bool = True,
     parent_files: Optional[List[pathlib.Path]] = None,
 ) -> None:
     """Iterates over attributes of instance and converts sub-classes it finds.
@@ -501,6 +527,7 @@ def _convert_sub_classes(
                 converters,
                 convert_paths,
                 convert_dates,
+                convert_regex,
                 parent_files,
             )
         elif isinstance(given_value, str):
@@ -513,6 +540,7 @@ def _convert_sub_classes(
                 converters,
                 convert_paths,
                 convert_dates,
+                convert_regex,
                 parent_files,
             )
         else:

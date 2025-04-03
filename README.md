@@ -100,7 +100,7 @@ This produces the output:
 Config(foo=10, flag=False, optional=None)
 ```
 
-### Automatic pathlib/datetime Conversion
+### Automatic pathlib/datetime/regex Conversion
 
 #### pathlib.Path Conversions
 It is usually preferable to represent paths using `pathlib.Path` objects rather
@@ -131,14 +131,14 @@ config = mini_cfg.cfg_from_toml(config_file, Config)
 config_conversion_disabled = mini_cfg.cfg_from_toml(
     config_file, Config, convert_paths=False)
 
-print(config.some_file, " ", type(config.some_file))
-print(config.some_file, " ", type(config_conversion_disabled.some_file))
+print(config.some_file, type(config.some_file))
+print(config.some_file, type(config_conversion_disabled.some_file))
 ```    
 
 This will produce the output:
 ```
-path/to/file.txt   <class 'pathlib.PosixPath'>
-path/to/file.txt   <class 'str'>
+path/to/file.txt <class 'pathlib.PosixPath'>
+path/to/file.txt <class 'str'>
 ```
 
 #### Datetime Conversions
@@ -179,18 +179,58 @@ config_dict = {"foo":"2025-02-28"}
 config_date_from_str = mini_cfg.cfg_from_dict(config_dict, Config)
 
 # Will be a datetime object even though only year, month, day is provided
-print(config.foo, " ", type(config.foo))
+print(config.foo, type(config.foo))
 # Will be a date object since conversion was disabled
-print(config_no_date_conversion.foo, " ", type(config_no_date_conversion.foo))
+print(config_no_date_conversion.foo, type(config_no_date_conversion.foo))
 # Will be a datetime object parsed from the string in the dict
-print(config_date_from_str.foo, " ", type(config_date_from_str.foo))
+print(config_date_from_str.foo, type(config_date_from_str.foo))
 ```
 
 This produces the output:
 ```
-2025-02-28 00:00:00   <class 'datetime.datetime'>
-2025-02-28   <class 'datetime.date'>
-2025-02-28 00:00:00   <class 'datetime.datetime'>
+2025-02-28 00:00:00 <class 'datetime.datetime'>
+2025-02-28 <class 'datetime.date'>
+2025-02-28 00:00:00 <class 'datetime.datetime'>
+```
+#### Regular Expression Conversions
+It is extremely common to store regular expressions in config files.  As a
+convenience, `mini_cfg` will any convert any attribute of your `dataclass` whose
+type hint is `re.Pattern`.  As with path/datetime conversions, this can also be
+disabled.
+
+`example.toml`
+```toml
+# Using a TOML literal string to avoid problems with the \ escape character
+regex = '\S+\.txt'
+```
+
+Python to demonstrate automatic conversion to `re.Pattern` as well as disabling 
+conversion:
+```python
+import re
+
+@dataclasses.dataclass
+class Config:
+    regex: re.Pattern
+
+
+config_file = pathlib.Path("example.toml")
+
+config = mini_cfg.cfg_from_toml(config_file, Config)
+config_no_regex_conversion = mini_cfg.cfg_from_toml(
+    config_file, Config, convert_regex=False)
+
+# The regex attribute was converted to re.Pattern
+match = config.regex.match("foo.txt")
+print("Match:", match)
+# Will be a string since conversion was disabled:
+print(config_no_regex_conversion.regex, type(config_no_regex_conversion.regex))
+```
+
+This produces the output:
+```
+Match: <re.Match object; span=(0, 7), match='foo.txt'>
+\S+\.txt <class 'str'>
 ```
 
 ### Hierarchical Configuration

@@ -10,3 +10,6 @@ converted_dt = 2025-02-06
 # A field that, by default, will be converted to a pathlib.Path object and will
 # otherwise be a string
 filename = "some_file.txt"  
+# A field that, by default, will be converted to a re.Pattern object and will
+# otherwise be a string
+regex = "test_regex"

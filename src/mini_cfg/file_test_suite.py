@@ -1,6 +1,6 @@
 """Provides a test suite to use the same tests among different readers.
 
-Since the same functionality should be tested regardless of file format, this 
+Since the same functionality should be tested regardless of file format, this
 module provides parameterized tests that can be reused among multiplte readers.
 In order to test a new reader, a set of simple config files should be provided.
 The contents of the example toml files should be replicated in your format if
@@ -12,11 +12,12 @@ Basic Config:
     This file is used to verify that a simple config file without nesting can
     be parsed. The reader should produce the following dictionary from the file:
     {
-        "foo": 10, 
+        "foo": 10,
         "full_dt": "2025-02-06 12:05:01", # Can also be a datetime
         "converted_dt": "2025-02-06", # Can also be a date
         "filename": "some_file.txt"
-    }   
+        "regex": "test_regex"
+    }
 
 Nested Config:
     Example: tests/itests/test_configs/toml/nested_config.toml
@@ -26,12 +27,12 @@ Nested Config:
         "nested":
         {
             "foo": 10,
-            "filename": "some_file.txt" 
+            "filename": "some_file.txt"
         }
     }
 
 Cascaded Nested Config:
-    Example: tests/itests/test_configs/toml/cascaded_config.toml 
+    Example: tests/itests/test_configs/toml/cascaded_config.toml
     This file is used to verify that a nested value can be overrided with config
     cascading. This will be used in the cascade: [Nested Config, Cascaded Nested
     Config] to override a value in Nested Config. The reader should produce the
@@ -44,7 +45,7 @@ Cascaded Nested Config:
     }
 
 Nested With Pointer Config:
-    Example: tests/itests/test_configs/toml/nested_with_pointer_config.toml 
+    Example: tests/itests/test_configs/toml/nested_with_pointer_config.toml
     This file is used to verify that a config file with a nested sub-config can
     point to a separate config file. This separate file will be parsed as if its
     contents were included in the top-level config file. The reader should
@@ -64,7 +65,7 @@ Separated Nested Config:
     }
 
 Nested Cycle A and B Configs:
-    Example: tests/itests/test_configs/toml/nested_cycle_a.toml and 
+    Example: tests/itests/test_configs/toml/nested_cycle_a.toml and
     tests/itests/test_configs/toml/nested_cycle_b.toml
     These files are used to create a cyclic sub-config pointer reference to
     verify that the code will detect the cycle and raise an error. So the "A"
@@ -88,6 +89,7 @@ import dataclasses
 import datetime as dt
 import inspect
 import pathlib
+import re
 import sys
 import unittest
 
@@ -116,6 +118,7 @@ class BasicConfig:
     full_dt: dt.datetime
     converted_dt: dt.datetime
     filename: pathlib.Path
+    regex: re.Pattern
 
 
 @dataclasses.dataclass
@@ -181,6 +184,13 @@ def _test_basic_PathIsConverted(fix: TestFixture) -> None:
         fix.tester.assertEqual(cfg.filename, TEST_PATH)
 
 
+def _test_basic_RegexConverted(fix: TestFixture) -> None:
+    with fix.tester.subTest("Basic parse. Regex field is converted."):
+        cfg = mini_cfg.cfg_from_file(fix.basic_config_file, BasicConfig, fix.reader)
+
+        fix.tester.assertIsInstance(cfg.regex, re.Pattern)
+
+
 def _test_basic_DateNotConvertedWhenDisabled(fix: TestFixture) -> None:
     test_name = "Basic parse. Does not convert date if conversion disabled."
     with fix.tester.subTest(test_name):
@@ -218,6 +228,16 @@ def _test_basic_PathNotConvertedWhenDisabled(fix: TestFixture) -> None:
         )
 
         fix.tester.assertEqual(cfg.filename, TEST_PATH.name)
+
+
+def _test_basic_RegexNotConvertedWhenDisabled(fix: TestFixture) -> None:
+    test_name = "Basic parse. Regex not converted when conversion disabled."
+    with fix.tester.subTest(test_name):
+        cfg = mini_cfg.cfg_from_file(
+            fix.basic_config_file, BasicConfig, fix.reader, convert_regex=False
+        )
+
+        fix.tester.assertIsInstance(cfg.regex, str)
 
 
 def _test_nested_IntParsed(fix: TestFixture) -> None:
